@@ -25,6 +25,7 @@ jobs:
         with:
           workspaces: app/src-tauri
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:licenses
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test

@@ -18,7 +18,7 @@ export function MascotWindow() {
       listen("app:event", (e) => controller.handleAppEvent(e.payload)),
       listen("hotkey:summon", () => controller.dispatch({ type: "SUMMON" })),
       listen("tray:toggle", () => controller.toggleChat()),
-      listen("tray:about", () => tauriPorts.log("About is not built yet (Task 04)")),
+      listen("tray:about", () => controller.openAbout()),
     ];
     return () => {
       unsubscribe();

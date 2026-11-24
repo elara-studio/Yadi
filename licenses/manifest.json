@@ -1,0 +1,46 @@
+[
+  {
+    "id": "yadi",
+    "name": "Yadi",
+    "kind": "app",
+    "version": "0.1.0",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+    "attribution": "Copyright Elara Software. Placeholder licence (decision D1) until confirmed.",
+    "notice_file": "texts/yadi-LICENSE.txt",
+    "source_url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+  },
+  {
+    "id": "ollama",
+    "name": "Ollama",
+    "kind": "runtime",
+    "version": "user-installed (not bundled)",
+    "license_spdx": "MIT",
+    "license_url": "https://github.com/ollama/ollama/blob/main/LICENSE",
+    "attribution": "Copyright (c) Ollama",
+    "notice_file": "texts/ollama-LICENSE.txt",
+    "source_url": "https://raw.githubusercontent.com/ollama/ollama/main/LICENSE"
+  },
+  {
+    "id": "whisper",
+    "name": "OpenAI Whisper (code and model weights)",
+    "kind": "runtime",
+    "version": "English models (tiny.en / base.en / small.en); exact build chosen in Task 09",
+    "license_spdx": "MIT",
+    "license_url": "https://github.com/openai/whisper/blob/main/LICENSE",
+    "attribution": "Copyright (c) 2022 OpenAI. The Whisper README states: \"Whisper's code and model weights are released under the MIT License.\"",
+    "notice_file": "texts/whisper-LICENSE.txt",
+    "source_url": "https://raw.githubusercontent.com/openai/whisper/main/README.md"
+  },
+  {
+    "id": "sherpa-onnx",
+    "name": "sherpa-onnx",
+    "kind": "runtime",
+    "version": "UNVERIFIED (pinned in Task 10)",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://github.com/k2-fsa/sherpa-onnx/blob/master/LICENSE",
+    "attribution": "sherpa-onnx by the k2-fsa project (Apache License 2.0 as published in its repository)",
+    "notice_file": "texts/sherpa-onnx-LICENSE.txt",
+    "source_url": "https://raw.githubusercontent.com/k2-fsa/sherpa-onnx/master/LICENSE"
+  }
+]

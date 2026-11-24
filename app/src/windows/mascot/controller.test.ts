@@ -7,6 +7,7 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     showChat: vi.fn(() => void calls.push("showChat")),
     hideChat: vi.fn(() => void calls.push("hideChat")),
     focusChat: vi.fn(() => void calls.push("focusChat")),
+    showView: vi.fn((v) => void calls.push(`view:${v}`)),
     broadcast: vi.fn((p) => void calls.push(`broadcast:${p.state}:${p.editing}`)),
     log: vi.fn(),
   };
@@ -68,6 +69,13 @@ describe("Controller", () => {
     const { controller } = setup({ state: "idle", editing: true, hasTranscript: true });
     controller.toggleChat();
     expect(controller.model).toMatchObject({ state: "minimized", editing: false });
+  });
+
+  it("openAbout summons the chat and switches it to the About view", () => {
+    const { controller, calls } = setup();
+    controller.openAbout();
+    expect(controller.model.state).toBe("idle");
+    expect(calls).toEqual(["broadcast:idle:false", "showChat", "focusChat", "view:about"]);
   });
 
   it("handleAppEvent applies known events from the chat window", () => {

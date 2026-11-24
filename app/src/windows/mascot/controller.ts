@@ -15,11 +15,15 @@ export interface AppStatePayload {
 }
 
 /** Everything the Controller needs from the outside world, injected so it is testable. */
+export type ChatView = "chat" | "about";
+
 export interface ControllerPorts {
   showChat(): void | Promise<void>;
   hideChat(): void | Promise<void>;
   focusChat(): void | Promise<void>;
   broadcast(payload: AppStatePayload): void | Promise<void>;
+  /** Tells the chat window which screen to show (`app:view`). */
+  showView(view: ChatView): void | Promise<void>;
   /** Diagnostics only. Never pass transcripts, audio or prompts here. */
   log(message: string): void;
 }
@@ -128,6 +132,12 @@ export class Controller {
     for (let i = 0; i < 3 && !this.isMinimized(); i++) {
       this.dispatch({ type: "KEY_ESC" });
     }
+  }
+
+  /** Tray "About": open the chat if hidden and switch it to the About screen. */
+  openAbout(): void {
+    this.dispatch({ type: "SUMMON" });
+    void this.ports.showView("about");
   }
 
   private isMinimized(): boolean {

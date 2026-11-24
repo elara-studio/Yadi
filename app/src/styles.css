@@ -208,3 +208,98 @@ body,
   flex-direction: column;
   align-items: center;
 }
+
+.chat-info {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--yadi-orange);
+  background: transparent;
+  color: var(--yadi-orange);
+  font:
+    italic 700 13px Georgia,
+    serif;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* ---------- About page ---------- */
+
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+.about-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.about-back {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--yadi-orange);
+}
+.about-title {
+  margin: 0;
+  font-size: 18px;
+}
+.about-version-line {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.about-privacy {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.about-search {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid rgb(0 0 0 / 20%);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.about-list {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+.about-group h2 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+.about-entry summary {
+  cursor: pointer;
+  padding: 3px 0;
+  font-size: 13px;
+}
+.about-version,
+.about-spdx {
+  opacity: 0.6;
+  font-size: 11px;
+}
+.about-detail {
+  padding: 0 0 8px 14px;
+  font-size: 12px;
+}
+.about-url {
+  word-break: break-all;
+  opacity: 0.8;
+}
+.about-text {
+  max-height: 160px;
+  overflow: auto;
+  padding: 6px;
+  background: rgb(0 0 0 / 5%);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
