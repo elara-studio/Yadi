@@ -29,6 +29,11 @@ pnpm typecheck
 pnpm build        # production bundle
 ```
 
+## Platform notes
+
+- **macOS transparency:** the floating mascot and chat windows are transparent, which requires Tauri's `macOSPrivateApi` setting (`app.macOSPrivateApi` in `tauri.conf.json` plus the `macos-private-api` cargo feature). Apps that use private macOS APIs cannot be distributed through the Mac App Store; direct distribution is unaffected.
+- The app runs as an "Accessory" on macOS: no Dock icon, only the floating mascot and the menu-bar tray icon.
+
 ## License
 
 Apache-2.0 (see `LICENSE`). Bundled third-party models and runtimes carry their own licences, listed in the app under About.
