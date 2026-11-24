@@ -3,7 +3,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { MAX_THRESHOLD_MS, MIN_THRESHOLD_MS, type Settings, type SummonMode } from "./types";
 
 /** Settings stub (Task 07): how Yadi is summoned. Task 21 completes the settings screen. */
-export function SettingsView({ onBack }: { onBack: () => void }) {
+export function SettingsView({
+  onBack,
+  onRerunSetup,
+}: {
+  onBack: () => void;
+  /** Re-opens the setup wizard; `repair` also downloads the models again. */
+  onRerunSetup?: (repair: boolean) => void;
+}) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -116,6 +123,24 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
       <button type="button" className="settings-save" onClick={() => void save()}>
         Save
       </button>
+
+      {onRerunSetup && (
+        <fieldset className="settings-group">
+          <legend>Setup</legend>
+          <div className="settings-row">
+            <button type="button" onClick={() => onRerunSetup(false)}>
+              Re-run setup
+            </button>
+            <button
+              type="button"
+              onClick={() => onRerunSetup(true)}
+              title="Downloads the models again"
+            >
+              Repair models
+            </button>
+          </div>
+        </fieldset>
+      )}
     </section>
   );
 }

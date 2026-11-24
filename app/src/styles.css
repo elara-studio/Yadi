@@ -462,3 +462,127 @@ body,
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* ---------- setup wizard ---------- */
+
+.setup {
+  font-size: 13px;
+  line-height: 1.5;
+  user-select: text;
+}
+.setup h1 {
+  margin: 0;
+  font-size: 18px;
+}
+.setup h2 {
+  margin: 12px 0 4px;
+  font-size: 15px;
+}
+.setup h3 {
+  margin: 10px 0 2px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+.setup-count {
+  margin: 0;
+  opacity: 0.65;
+}
+.setup-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  opacity: 0.8;
+}
+.setup-step-current {
+  font-weight: 700;
+  color: var(--yadi-orange);
+}
+.setup-facts {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+.setup-consent {
+  display: block;
+  margin: 10px 0;
+}
+.setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.setup-actions button {
+  padding: 6px 14px;
+  border: 1px solid var(--yadi-orange);
+  border-radius: 8px;
+  background: var(--yadi-orange);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.setup-actions button:nth-child(n + 2) {
+  background: transparent;
+  color: var(--yadi-orange);
+}
+.setup-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.setup-bar {
+  height: 10px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 10%);
+  overflow: hidden;
+}
+.setup-bar-fill {
+  height: 100%;
+  background: var(--yadi-orange);
+  transition: width 0.2s;
+}
+.setup-bar-indeterminate {
+  width: 35%;
+  animation: setup-slide 1.2s ease-in-out infinite;
+}
+@keyframes setup-slide {
+  0% {
+    margin-left: -35%;
+  }
+  100% {
+    margin-left: 100%;
+  }
+}
+.setup-progress-text {
+  margin: 4px 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.setup-error {
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid #b3261e;
+  border-radius: 8px;
+  background: #fdecea;
+}
+.setup-error p {
+  margin: 0 0 6px;
+}
+.setup-hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.setup-how {
+  padding-left: 18px;
+}
+.setup-mock {
+  margin: 0 0 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #fff1e8;
+  font-size: 11px;
+}

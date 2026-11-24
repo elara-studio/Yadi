@@ -73,6 +73,7 @@ const EVENT_TYPES: ReadonlySet<string> = new Set([
   "EDIT_START",
   "EDIT_END",
   "SETUP_DONE",
+  "SETUP_START",
   "TRANSCRIPT_CHANGED",
   "PROCESS_DONE",
   "PROCESS_FAILED",
@@ -128,6 +129,8 @@ export class Controller {
   private readonly transcript = new Transcript();
   /** Resolves when the most recent recording has fully stopped and its last words have arrived. */
   private settled: Promise<void> = Promise.resolve();
+  /** False until the first-run wizard has finished (or after "re-run setup"). */
+  private setupComplete = true;
   /** Bumped when processing starts and when it is cancelled, so late results can be ignored. */
   private processingRun = 0;
 
@@ -151,7 +154,23 @@ export class Controller {
     return () => this.listeners.delete(listener);
   }
 
+  /** Tells the Controller whether first-run setup is finished (read from `setup.json` at startup). */
+  setSetupComplete(complete: boolean): void {
+    this.setupComplete = complete;
+  }
+
   dispatch(event: AppEvent): void {
+    // While setup is unfinished a summon must open the wizard, never skip it.
+    if (event.type === "SUMMON" && !this.setupComplete && this.current.state === "minimized") {
+      event = { type: "SETUP_START" };
+    }
+    if (event.type === "SETUP_DONE") this.setupComplete = true;
+    if (
+      event.type === "SETUP_START" &&
+      ["minimized", "idle", "result"].includes(this.current.state)
+    ) {
+      this.setupComplete = false;
+    }
     const { model, effects } = transition(this.current, event);
     const changed = !sameModel(model, this.current);
     this.current = model;

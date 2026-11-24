@@ -596,3 +596,72 @@ describe("transcript edits", () => {
     ]);
   });
 });
+
+describe("first-run setup gating", () => {
+  const minimized = () => setup({ state: "minimized", editing: false, hasTranscript: false });
+
+  it("with setup unfinished, a summon opens the wizard instead of an idle chat", () => {
+    const { controller, calls } = minimized();
+    controller.setSetupComplete(false);
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("setup");
+    expect(calls).toContain("showChat");
+  });
+
+  it("with setup finished, a summon goes to idle as usual", () => {
+    const { controller } = minimized();
+    controller.setSetupComplete(true);
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("idle");
+  });
+
+  it("SETUP_DONE completes setup: later summons go to idle", () => {
+    const { controller } = minimized();
+    controller.setSetupComplete(false);
+    controller.dispatch({ type: "SUMMON" }); // wizard
+    controller.handleAppEvent({ type: "SETUP_DONE" });
+    expect(controller.model.state).toBe("idle");
+    controller.dispatch({ type: "KEY_ESC" }); // hide
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("idle");
+  });
+
+  it("dismissing the wizard with Esc does not let a later summon skip setup", () => {
+    const { controller } = minimized();
+    controller.setSetupComplete(false);
+    controller.dispatch({ type: "SETUP_START" });
+    controller.dispatch({ type: "KEY_ESC" }); // wizard hidden
+    expect(controller.model.state).toBe("minimized");
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("setup");
+  });
+
+  it("a summon while the wizard is open focuses it", () => {
+    const { controller, calls } = minimized();
+    controller.setSetupComplete(false);
+    controller.dispatch({ type: "SETUP_START" });
+    calls.length = 0;
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("setup");
+    expect(calls).toContain("focusChat");
+  });
+
+  it("SETUP_START from the chat window (re-run / repair) reopens the wizard and marks setup unfinished", () => {
+    const { controller } = setup({ state: "idle", editing: false, hasTranscript: false });
+    controller.handleAppEvent({ type: "SETUP_START" });
+    expect(controller.model.state).toBe("setup");
+    controller.dispatch({ type: "KEY_ESC" });
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("setup");
+  });
+
+  it("SETUP_START is ignored while recording and does not mark setup unfinished", () => {
+    const { controller } = setup({ state: "recording", editing: false, hasTranscript: true });
+    controller.handleAppEvent({ type: "SETUP_START" });
+    expect(controller.model.state).toBe("recording");
+    controller.dispatch({ type: "KEY_ESC" });
+    controller.dispatch({ type: "KEY_ESC" }); // hide
+    controller.dispatch({ type: "SUMMON" });
+    expect(controller.model.state).toBe("idle");
+  });
+});

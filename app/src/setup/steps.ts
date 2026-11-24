@@ -1,0 +1,185 @@
+import type { SetupStepId } from "@yadi/core";
+import type { SetupApi } from "./api";
+import { SpeedMeter } from "./format";
+import type { HardwareProfile, TierInfo } from "./types";
+
+/** What a running step reports to the screen. */
+export interface StepProgress {
+  label: string;
+  received: number;
+  total: number | null;
+  bytesPerSecond: number | null;
+}
+
+export interface StepContext {
+  api: SetupApi;
+  tier: TierInfo;
+  hardware: HardwareProfile;
+  /** Repair mode: models are downloaded again even if they look installed. */
+  repair: boolean;
+  report: (progress: StepProgress) => void;
+  /** Wall clock in ms; injected so speed measurement is testable. */
+  now: () => number;
+}
+
+export interface StepDef {
+  id: Exclude<SetupStepId, "welcome">;
+  title: string;
+  /** Already done? Steps are idempotent: if so the wizard moves on without doing anything. */
+  detect(ctx: StepContext): Promise<boolean>;
+  run(ctx: StepContext): Promise<void>;
+}
+
+const isMac = (c: StepContext) => c.hardware.os === "macos";
+
+/** A progress callback that also measures speed. */
+function meter(ctx: StepContext, label: string) {
+  const speed = new SpeedMeter();
+  return (received: number, total: number | null) => {
+    ctx.report({ label, received, total, bytesPerSecond: speed.add(ctx.now(), received) });
+  };
+}
+
+/**
+ * Makes sure Ollama answers before something needs it. If the saved progress says it was set up
+ * but it has since been removed or stopped, this installs/starts it again rather than failing.
+ */
+async function ensureOllamaRunning(ctx: StepContext): Promise<void> {
+  if ((await ctx.api.ollamaStatus()).state === "running") return;
+  await ollamaStep.run(ctx);
+}
+
+export const ollamaStep: StepDef = {
+  id: "ollama",
+  title: "Ollama (the engine that runs the language model)",
+  async detect(ctx) {
+    return (await ctx.api.ollamaStatus()).state === "running";
+  },
+  async run(ctx) {
+    let status = await ctx.api.ollamaStatus();
+    if (status.state === "missing") {
+      const report = meter(ctx, "Downloading Ollama");
+      const off = ctx.api.onDownloadProgress("ollama-installer", (p) =>
+        report(p.received, p.total),
+      );
+      try {
+        await ctx.api.ollamaInstall();
+      } finally {
+        off();
+      }
+      status = await ctx.api.ollamaStatus();
+    }
+    if (status.state === "installed") {
+      ctx.report({ label: "Starting Ollama", received: 0, total: null, bytesPerSecond: null });
+      await ctx.api.ollamaStart();
+      status = await ctx.api.ollamaStatus();
+    }
+    if (status.state !== "running") throw new Error("Ollama did not start. Please try again.");
+  },
+};
+
+export const llmStep: StepDef = {
+  id: "llm",
+  title: "Language model",
+  async detect(ctx) {
+    if (ctx.repair) return false;
+    const running = (await ctx.api.ollamaStatus()).state === "running";
+    return running && (await ctx.api.ollamaHas(ctx.tier.llm_tag));
+  },
+  async run(ctx) {
+    await ensureOllamaRunning(ctx);
+    const speed = new SpeedMeter();
+    const off = ctx.api.onPullProgress((p) => {
+      const received = p.completed ?? 0;
+      ctx.report({
+        label: p.status,
+        received,
+        total: p.total ?? null,
+        bytesPerSecond: p.total ? speed.add(ctx.now(), received) : null,
+      });
+    });
+    try {
+      await ctx.api.ollamaPull(ctx.tier.llm_tag);
+    } finally {
+      off();
+    }
+  },
+};
+
+export const sttStep: StepDef = {
+  id: "stt",
+  title: "Speech recognition models",
+  async detect(ctx) {
+    if (ctx.repair) return false;
+    const models = await ctx.api.listModels();
+    return [ctx.tier.stt_stream_model_id, ctx.tier.stt_final_model_id].every(
+      (id) => models.find((m) => m.id === id)?.installed,
+    );
+  },
+  async run(ctx) {
+    const models = await ctx.api.listModels();
+    const parts: [string, string][] = [
+      [ctx.tier.stt_stream_model_id, "Live speech model"],
+      [ctx.tier.stt_final_model_id, "Accuracy model"],
+    ];
+    for (const [id, label] of parts) {
+      if (!ctx.repair && models.find((m) => m.id === id)?.installed) continue;
+      const report = meter(ctx, label);
+      const off = ctx.api.onDownloadProgress(id, (p) => report(p.received, p.total));
+      try {
+        await ctx.api.downloadModel(id, ctx.repair);
+      } finally {
+        off();
+      }
+    }
+  },
+};
+
+export const MIC_DENIED_MESSAGE =
+  "Microphone access is turned off for Yadi. Turn it on in your system's privacy settings (macOS: System Settings > Privacy & Security > Microphone; Windows: Settings > Privacy > Microphone), then press Try again.";
+
+export const microphoneStep: StepDef = {
+  id: "microphone",
+  title: "Microphone",
+  async detect(ctx) {
+    return (await ctx.api.micStatus()) === "authorized";
+  },
+  async run(ctx) {
+    const status = await ctx.api.micRequest();
+    if (status === "denied" || status === "restricted") throw new Error(MIC_DENIED_MESSAGE);
+    if (status === "not-determined") {
+      throw new Error("No answer to the microphone question yet. Press Try again.");
+    }
+    // "authorized", or "unknown" (no system answer is available, e.g. on Windows: Yadi
+    // will notice a silent microphone later and say so).
+  },
+};
+
+export const SUMMON_NOT_GRANTED_MESSAGE =
+  "Yadi still needs keyboard permission to notice when you hold Y. Allow it in System Settings > Privacy & Security (Accessibility and Input Monitoring), then press Try again, or skip this and use Cmd+Shift+Y instead.";
+
+export const summonStep: StepDef = {
+  id: "summon",
+  title: "Summon key",
+  async detect(ctx) {
+    if (!isMac(ctx)) return false; // Windows: show the explanation screen
+    const p = await ctx.api.hotkeyStatus();
+    return p.accessibility && p.input_monitoring;
+  },
+  async run(ctx) {
+    if (!isMac(ctx)) return; // nothing to grant on Windows
+    const before = await ctx.api.hotkeyStatus();
+    if (!(before.accessibility && before.input_monitoring)) await ctx.api.hotkeyRequest();
+    const after = await ctx.api.hotkeyStatus();
+    if (!(after.accessibility && after.input_monitoring))
+      throw new Error(SUMMON_NOT_GRANTED_MESSAGE);
+  },
+};
+
+export const STEP_DEFS: Record<Exclude<SetupStepId, "welcome">, StepDef> = {
+  ollama: ollamaStep,
+  llm: llmStep,
+  stt: sttStep,
+  microphone: microphoneStep,
+  summon: summonStep,
+};

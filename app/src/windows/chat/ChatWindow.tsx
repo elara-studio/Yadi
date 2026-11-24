@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import type { AppEvent, TranscriptSnapshot } from "@yadi/core";
+import { loadSetupState, restartSetup, type AppEvent, type TranscriptSnapshot } from "@yadi/core";
 import { AboutView } from "../../about/AboutView";
 import { TranscriptView } from "../../components/TranscriptView";
 import { SettingsView } from "../../settings/SettingsView";
+import { SetupWizard } from "../../setup/SetupWizard";
+import { createTauriSetupApi, isMockSetup, type SetupApi } from "../../setup/api";
+import { createMockSetupApi } from "../../setup/mockApi";
 import type {
   AppStatePayload,
   ChatView,
@@ -28,10 +31,27 @@ export function ChatWindow() {
   const [app, setApp] = useState<AppStatePayload>({ state: "minimized", editing: false });
   const [view, setView] = useState<ChatView>("chat");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [setupApi, setSetupApi] = useState<SetupApi | null>(null);
   const [progress, setProgress] = useState<ProgressPayload | null>(null);
   const [transcript, setTranscript] = useState<TranscriptSnapshot>({ segments: [], partial: "" });
 
   useKeyboardControls(sendToController);
+
+  // The real setup, or the simulated one when YADI_MOCK_SETUP=1 (development only).
+  useEffect(() => {
+    isMockSetup().then(
+      (mock) => setSetupApi(mock ? createMockSetupApi() : createTauriSetupApi()),
+      () => setSetupApi(createTauriSetupApi()),
+    );
+  }, []);
+
+  const rerunSetup = async (repair: boolean) => {
+    if (!setupApi) return;
+    const state = loadSetupState(await setupApi.getState());
+    await setupApi.saveState(restartSetup(state, repair));
+    setView("chat");
+    sendToController({ type: "SETUP_START" });
+  };
 
   useEffect(() => {
     // A notice raised during startup (e.g. Hold-Y fell back to the chord) waits in Rust.
@@ -63,7 +83,19 @@ export function ChatWindow() {
           </div>
         ) : view === "settings" ? (
           <div className="chat-body">
-            <SettingsView onBack={() => setView("chat")} />
+            <SettingsView onBack={() => setView("chat")} onRerunSetup={(r) => void rerunSetup(r)} />
+          </div>
+        ) : app.state === "setup" ? (
+          <div className="chat-body">
+            {setupApi ? (
+              <SetupWizard
+                api={setupApi}
+                onFinished={() => sendToController({ type: "SETUP_DONE" })}
+                onOpenAbout={() => setView("about")}
+              />
+            ) : (
+              <p>Loading…</p>
+            )}
           </div>
         ) : (
           <>

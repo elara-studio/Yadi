@@ -19,6 +19,7 @@ export type AppEvent =
   | { type: "EDIT_START" }
   | { type: "EDIT_END" }
   | { type: "SETUP_DONE" }
+  | { type: "SETUP_START" }
   | { type: "TRANSCRIPT_CHANGED"; hasTranscript: boolean }
   | { type: "PROCESS_DONE" }
   | { type: "PROCESS_FAILED"; message?: string }
@@ -67,7 +68,6 @@ function noop(model: Model): Transition {
 
 function onSummon(m: Model): Transition {
   if (m.state === "minimized") return go(m, { state: "idle" }, showChat, focusChat);
-  if (m.state === "setup") return noop(m);
   return go(m, {}, focusChat);
 }
 
@@ -117,6 +117,17 @@ function onRecordFailed(m: Model, message: string): Transition {
   }
 }
 
+/**
+ * Opens (or re-opens) the setup wizard: from the hidden state (showing the chat) or from idle /
+ * result (re-run or repair). Never while recording or processing.
+ */
+function onSetupStart(m: Model): Transition {
+  if (m.state === "minimized")
+    return go(m, { state: "setup", editing: false }, showChat, focusChat);
+  if (m.state === "idle" || m.state === "result") return go(m, { state: "setup", editing: false });
+  return noop(m);
+}
+
 export function transition(model: Model, event: AppEvent): Transition {
   switch (event.type) {
     case "SUMMON":
@@ -131,6 +142,8 @@ export function transition(model: Model, event: AppEvent): Transition {
         : noop(model);
     case "EDIT_END":
       return model.editing ? go(model, { editing: false }) : noop(model);
+    case "SETUP_START":
+      return onSetupStart(model);
     case "SETUP_DONE":
       return model.state === "setup" ? go(model, { state: "idle" }) : noop(model);
     case "TRANSCRIPT_CHANGED":

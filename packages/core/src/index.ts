@@ -7,3 +7,4 @@ export function coreVersion(): string {
   return CORE_VERSION;
 }
 export * from "./transcript";
+export * from "./setup";

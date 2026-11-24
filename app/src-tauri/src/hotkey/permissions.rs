@@ -1,7 +1,7 @@
 //! macOS privacy permissions needed by the global keyboard hook. On other systems nothing is
 //! needed and every check reports "granted".
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct PermissionStatus {
     /// "Accessibility": needed to create an event tap that can swallow keys.
     pub accessibility: bool,

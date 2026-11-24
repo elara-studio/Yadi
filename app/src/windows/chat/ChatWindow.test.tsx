@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const emit = vi.fn(() => Promise.resolve());
 const handlers = new Map<string, (e: { payload: unknown }) => void>();
@@ -8,13 +8,28 @@ const listen = vi.fn((name: string, cb: (e: { payload: unknown }) => void) => {
   return Promise.resolve(() => handlers.delete(name));
 });
 
-const invoke = vi.fn<(cmd: string) => Promise<unknown>>((cmd) =>
+const invoke = vi.fn<(cmd: string, args?: unknown) => Promise<unknown>>((cmd) =>
   Promise.resolve(cmd === "get_notice" ? null : undefined),
 );
 
 vi.mock("@tauri-apps/api/event", () => ({ emit, listen }));
 vi.mock("@tauri-apps/api/core", () => ({ invoke }));
 vi.mock("@tauri-apps/api/app", () => ({ getVersion: () => Promise.resolve("0.1.0") }));
+
+vi.mock("../../setup/SetupWizard", () => ({
+  SetupWizard: ({
+    onFinished,
+    onOpenAbout,
+  }: {
+    onFinished: () => void;
+    onOpenAbout?: () => void;
+  }) => (
+    <div data-testid="wizard-stub">
+      <button onClick={onFinished}>finish-setup</button>
+      <button onClick={onOpenAbout}>open-about</button>
+    </div>
+  ),
+}));
 
 const { ChatWindow, KEY_HINT } = await import("./ChatWindow");
 
@@ -137,5 +152,53 @@ describe("ChatWindow", () => {
       }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("Nothing heard");
+  });
+
+  it("shows the setup wizard instead of the chat while the app is in the setup state", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    act(() => handlers.get("app:state")?.({ payload: { state: "setup", editing: false } }));
+    expect(await screen.findByTestId("wizard-stub")).toBeInTheDocument();
+    expect(screen.queryByTestId("transcript")).not.toBeInTheDocument();
+    expect(screen.queryByText(KEY_HINT)).not.toBeInTheDocument();
+  });
+
+  it("finishing the wizard tells the Controller SETUP_DONE", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    act(() => handlers.get("app:state")?.({ payload: { state: "setup", editing: false } }));
+    fireEvent.click(await screen.findByText("finish-setup"));
+    expect(emit).toHaveBeenCalledWith("app:event", { type: "SETUP_DONE" });
+  });
+
+  it("the wizard's licences link opens About", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    act(() => handlers.get("app:state")?.({ payload: { state: "setup", editing: false } }));
+    fireEvent.click(await screen.findByText("open-about"));
+    expect(await screen.findByRole("heading", { name: "Yadi" })).toBeInTheDocument();
+    expect(screen.queryByTestId("wizard-stub")).not.toBeInTheDocument();
+  });
+
+  it("Settings -> Re-run setup saves a fresh progress file and asks for SETUP_START", async () => {
+    const defaults = invoke.getMockImplementation();
+    invoke.mockImplementation((cmd: string) =>
+      cmd === "get_settings"
+        ? Promise.resolve({
+            summon: { mode: "longpress-y", threshold_ms: 400, chord: "CommandOrControl+Shift+Y" },
+            finalPass: { enabled: true, timeout_seconds: 20 },
+          })
+        : Promise.resolve(cmd === "get_notice" ? null : undefined),
+    );
+    render(<ChatWindow />);
+    await act(async () => {});
+    fireEvent.click(screen.getByLabelText("Settings"));
+    fireEvent.click(await screen.findByRole("button", { name: "Repair models" }));
+    await waitFor(() => expect(emit).toHaveBeenCalledWith("app:event", { type: "SETUP_START" }));
+    const save = invoke.mock.calls.find((c) => c[0] === "save_setup_state");
+    expect(save?.[1]).toMatchObject({
+      state: { repair: true, steps: { welcome: "pending", ollama: "pending" } },
+    });
+    if (defaults) invoke.mockImplementation(defaults);
   });
 });

@@ -261,6 +261,7 @@ pub async fn download_model(
     app: AppHandle,
     state: State<'_, DownloadState>,
     id: String,
+    force: Option<bool>,
 ) -> Result<(), String> {
     let catalog = Catalog::embedded()?;
     let entry = catalog
@@ -271,6 +272,10 @@ pub async fn download_model(
         return Err(format!("model '{id}' is not a downloadable file"));
     };
     let root = models_dir(&app)?;
+    if force == Some(true) {
+        // Repair: throw away what is there (it may be corrupt) so it is downloaded again.
+        let _ = fs::remove_dir_all(root.join(&id));
+    }
     let token = {
         let mut active = state.active.lock().unwrap_or_else(|e| e.into_inner());
         if active.contains_key(&id) {

@@ -80,4 +80,20 @@ describe("SettingsView", () => {
       }),
     );
   });
+
+  it("offers Re-run setup and Repair models when the app provides a handler", async () => {
+    const user = userEvent.setup();
+    const onRerunSetup = vi.fn();
+    render(<SettingsView onBack={() => {}} onRerunSetup={onRerunSetup} />);
+    await user.click(await screen.findByRole("button", { name: "Re-run setup" }));
+    expect(onRerunSetup).toHaveBeenLastCalledWith(false);
+    await user.click(screen.getByRole("button", { name: "Repair models" }));
+    expect(onRerunSetup).toHaveBeenLastCalledWith(true);
+  });
+
+  it("does not show the setup buttons without a handler", async () => {
+    render(<SettingsView onBack={() => {}} />);
+    await screen.findByText(/Hold time/);
+    expect(screen.queryByRole("button", { name: "Re-run setup" })).not.toBeInTheDocument();
+  });
 });

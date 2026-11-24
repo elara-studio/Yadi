@@ -5,6 +5,7 @@ mod hotkey;
 mod models;
 mod ollama;
 mod settings;
+mod setup;
 mod stt;
 mod tiers;
 mod windows;
@@ -52,6 +53,13 @@ pub fn run() {
             ollama::commands::ollama_cancel_pull,
             ollama::commands::ollama_list,
             ollama::commands::ollama_has,
+            setup::get_setup_state,
+            setup::save_setup_state,
+            setup::setup_mock_enabled,
+            setup::mic_permission_status,
+            setup::mic_request_permission,
+            setup::hotkey_permission_status,
+            setup::hotkey_request_permission,
             hardware::get_hardware_profile,
             tiers::select_model_tier,
             models::list_models,

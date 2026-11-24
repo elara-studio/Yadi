@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { isSetupComplete, loadSetupState } from "@yadi/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Mascot } from "../../components/Mascot";
@@ -11,6 +12,26 @@ export function MascotWindow() {
   const controller = useMemo(() => new Controller(tauriPorts), []);
   const [model, setModel] = useState(controller.model);
   const gesture = useRef(new PointerGesture());
+
+  // First run (or unfinished setup): show the wizard instead of an idle chat.
+  useEffect(() => {
+    let cancelled = false;
+    invoke("get_setup_state").then(
+      (raw) => {
+        if (cancelled) return;
+        const complete = isSetupComplete(loadSetupState(raw));
+        controller.setSetupComplete(complete);
+        if (!complete) controller.dispatch({ type: "SETUP_START" });
+      },
+      () => {
+        // Unreadable state: treat as unfinished rather than silently skipping setup.
+        if (!cancelled) controller.dispatch({ type: "SETUP_START" });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [controller]);
 
   useEffect(() => {
     const unsubscribe = controller.subscribe(setModel);

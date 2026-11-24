@@ -48,7 +48,13 @@ const rows: Row[] = [
     to: m(s),
     effects: e("focusChat"),
   })),
-  { name: "setup + SUMMON is no-op", from: m("setup"), event: SUMMON, to: m("setup"), effects: [] },
+  {
+    name: "setup + SUMMON keeps the wizard and focuses it",
+    from: m("setup"),
+    event: SUMMON,
+    to: m("setup"),
+    effects: e("focusChat"),
+  },
   // KEY_Y
   {
     name: "idle + Y starts recording",
@@ -230,6 +236,35 @@ const rows: Row[] = [
     to: m("idle"),
     effects: [],
   },
+  // setup (re)start
+  {
+    name: "minimized + SETUP_START shows the wizard",
+    from: m("minimized"),
+    event: { type: "SETUP_START" },
+    to: m("setup"),
+    effects: e("showChat", "focusChat"),
+  },
+  ...(["idle", "result"] as const).map((s) => ({
+    name: `${s} + SETUP_START re-runs setup`,
+    from: m(s, { hasTranscript: true }),
+    event: { type: "SETUP_START" } as AppEvent,
+    to: m("setup", { hasTranscript: true }),
+    effects: [] as Effect[],
+  })),
+  {
+    name: "idle + editing + SETUP_START leaves editing",
+    from: m("idle", { editing: true }),
+    event: { type: "SETUP_START" },
+    to: m("setup"),
+    effects: [],
+  },
+  ...(["recording", "processing", "setup"] as const).map((s) => ({
+    name: `${s} + SETUP_START is ignored`,
+    from: m(s),
+    event: { type: "SETUP_START" } as AppEvent,
+    to: m(s),
+    effects: [] as Effect[],
+  })),
   // transcript flag
   {
     name: "TRANSCRIPT_CHANGED true",
