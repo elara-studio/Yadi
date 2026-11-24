@@ -8,7 +8,7 @@
 
 pub mod archive;
 #[cfg(test)]
-mod testserver;
+pub(crate) mod testserver;
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
@@ -163,27 +163,30 @@ impl Downloader {
         self
     }
 
-    /// Downloads `url` to `dest`, verifying `expected_sha256` (lowercase hex).
+    /// Downloads `url` to `dest`, verifying `expected_sha256` (lowercase hex) when given.
+    /// `None` is for files with no published checksum (the Ollama installer, which is verified by
+    /// its code signature instead); such a file is always downloaded afresh.
     /// `on_progress(received, total)` is called as bytes arrive.
     pub fn download(
         &self,
         url: &str,
         dest: &Path,
-        expected_sha256: &str,
+        expected_sha256: Option<&str>,
         on_progress: &mut dyn FnMut(u64, Option<u64>),
         cancel: &CancelToken,
     ) -> Result<(), DownloadError> {
-        let expected = expected_sha256.trim().to_ascii_lowercase();
+        let expected = expected_sha256.map(|s| s.trim().to_ascii_lowercase());
+        let expected = expected.as_deref();
         if let Some(dir) = dest.parent() {
             fs::create_dir_all(dir).map_err(|e| {
                 DownloadError::Failed(format!("cannot create {}: {e}", dir.display()))
             })?;
         }
 
-        // Already downloaded and intact? Nothing to do.
+        // Already downloaded and intact? Nothing to do (only possible when a checksum is known).
         if dest.exists() {
-            match sha256_file(dest) {
-                Ok(actual) if actual == expected => {
+            match (expected, sha256_file(dest)) {
+                (Some(want), Ok(actual)) if actual == want => {
                     let len = fs::metadata(dest).map(|m| m.len()).unwrap_or(0);
                     on_progress(len, Some(len));
                     return Ok(());
@@ -201,7 +204,7 @@ impl Downloader {
             if cancel.is_cancelled() {
                 return Err(DownloadError::Cancelled);
             }
-            match self.attempt(url, dest, &part, &expected, on_progress, cancel) {
+            match self.attempt(url, dest, &part, expected, on_progress, cancel) {
                 Ok(()) => return Ok(()),
                 Err(Attempt::Fatal(e)) => return Err(e),
                 Err(Attempt::Retry(why)) => {
@@ -221,7 +224,7 @@ impl Downloader {
         url: &str,
         dest: &Path,
         part: &Path,
-        expected: &str,
+        expected: Option<&str>,
         on_progress: &mut dyn FnMut(u64, Option<u64>),
         cancel: &CancelToken,
     ) -> Result<(), Attempt> {
@@ -377,7 +380,7 @@ impl Downloader {
         &self,
         dest: &Path,
         part: &Path,
-        expected: &str,
+        expected: Option<&str>,
         on_progress: &mut dyn FnMut(u64, Option<u64>),
         size: Option<u64>,
     ) -> Result<(), Attempt> {
@@ -397,15 +400,17 @@ impl Downloader {
         &self,
         dest: &Path,
         part: &Path,
-        expected: &str,
+        expected: Option<&str>,
         actual: &str,
         received: u64,
         on_progress: &mut dyn FnMut(u64, Option<u64>),
     ) -> Result<(), Attempt> {
-        if actual != expected {
+        if let Some(want) = expected
+            && actual != want
+        {
             let _ = fs::remove_file(part);
             return Err(Attempt::Fatal(DownloadError::ChecksumMismatch {
-                expected: expected.to_string(),
+                expected: want.to_string(),
                 actual: actual.to_string(),
             }));
         }
@@ -473,7 +478,7 @@ mod tests {
         let result = d.download(
             url,
             dest,
-            sha,
+            Some(sha),
             &mut |r, t| events.lock().unwrap().push((r, t)),
             &CancelToken::new(),
         );
@@ -583,7 +588,7 @@ mod tests {
         let result = dl().download(
             &server.url(),
             &dest,
-            &sha(&data),
+            Some(&sha(&data)),
             &mut |received, _| {
                 if received > 100_000 {
                     c2.cancel();
@@ -733,5 +738,31 @@ mod tests {
             sha256_file(&f).unwrap(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    #[test]
+    fn without_a_checksum_the_file_is_downloaded_unverified_and_always_afresh() {
+        let data = payload(30_000);
+        let server = Server::start(ServerConfig::new(data.clone()));
+        let dir = tmp("nosha");
+        let dest = dir.join("installer.bin");
+        fs::write(&dest, b"stale older installer").unwrap();
+        let mut last = (0, None);
+        dl().download(
+            &server.url(),
+            &dest,
+            None,
+            &mut |r, t| last = (r, t),
+            &CancelToken::new(),
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read(&dest).unwrap(),
+            data,
+            "an unverifiable old file is replaced, never trusted"
+        );
+        assert_eq!(server.requests().len(), 1);
+        assert_eq!(last, (30_000, Some(30_000)));
+        assert!(!part_path(&dest).exists());
     }
 }

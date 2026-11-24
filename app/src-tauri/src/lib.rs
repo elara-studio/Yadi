@@ -3,6 +3,7 @@ mod download;
 mod hardware;
 mod hotkey;
 mod models;
+mod ollama;
 mod settings;
 mod stt;
 mod tiers;
@@ -22,9 +23,13 @@ pub fn run() {
         )
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // HTTP for the prompt pipeline (Task 16). Its allow-list is limited to Ollama on localhost
+        // in capabilities/default.json.
+        .plugin(tauri_plugin_http::init())
         .manage(audio::commands::AudioState::default())
         .manage(models::DownloadState::default())
         .manage(stt::commands::SttState::default())
+        .manage(ollama::commands::OllamaState::new().expect("HTTP client for Ollama"))
         .manage(stt::commands::FinalPassState::default())
         .invoke_handler(tauri::generate_handler![
             windows::show_chat,
@@ -40,6 +45,13 @@ pub fn run() {
             stt::commands::stt_start,
             stt::commands::stt_stop,
             stt::commands::final_pass_run,
+            ollama::commands::ollama_status,
+            ollama::commands::ollama_start,
+            ollama::commands::ollama_install,
+            ollama::commands::ollama_pull,
+            ollama::commands::ollama_cancel_pull,
+            ollama::commands::ollama_list,
+            ollama::commands::ollama_has,
             hardware::get_hardware_profile,
             tiers::select_model_tier,
             models::list_models,
@@ -59,6 +71,13 @@ pub fn run() {
             windows::menu::setup_tray(app.handle())?;
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Stop Ollama on quit, but only if Yadi was the one that started it.
+            if let tauri::RunEvent::Exit = event {
+                use tauri::Manager;
+                app.state::<ollama::commands::OllamaState>().shutdown();
+            }
+        });
 }

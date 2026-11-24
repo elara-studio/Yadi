@@ -342,7 +342,7 @@ pub fn install(
         }
     };
     downloader
-        .download(url, &archive_path, sha256, &mut throttled, cancel)
+        .download(url, &archive_path, Some(sha256), &mut throttled, cancel)
         .map_err(|e| e.to_string())?;
 
     // Unpack beside the final folder, then rename, so a half-extracted model is never "installed".

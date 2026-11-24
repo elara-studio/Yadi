@@ -39,6 +39,7 @@ fs4 = "1"
 bzip2-rs = "0.1"
 sherpa-onnx = "2.0.3"
 sysinfo = { version = "0.40", default-features = false, features = ["system"] }
+tauri-plugin-http = { version = "2", default-features = false, features = ["native-tls"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-graphics = "0.25"
