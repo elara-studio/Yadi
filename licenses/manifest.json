@@ -42,5 +42,60 @@
     "attribution": "sherpa-onnx by the k2-fsa project (Apache License 2.0 as published in its repository)",
     "notice_file": "texts/sherpa-onnx-LICENSE.txt",
     "source_url": "https://raw.githubusercontent.com/k2-fsa/sherpa-onnx/master/LICENSE"
+  },
+  {
+    "id": "sherpa-zipformer-en-20m",
+    "name": "sherpa-onnx streaming zipformer en 20M (2023-02-17)",
+    "kind": "model",
+    "version": "en-20M-2023-02-17",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17",
+    "attribution": "Exported for sherpa-onnx by csukuangfj from an icefall LibriSpeech model; the Hugging Face model card declares license: apache-2.0. Trained on LibriSpeech (CC BY 4.0 data).",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17/raw/main/README.md"
+  },
+  {
+    "id": "sherpa-zipformer-en-2023-06-26",
+    "name": "sherpa-onnx streaming zipformer en (2023-06-26)",
+    "kind": "model",
+    "version": "en-2023-06-26",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26",
+    "attribution": "Exported for sherpa-onnx by csukuangfj from an icefall LibriSpeech model; the Hugging Face model card declares license: apache-2.0. Trained on LibriSpeech (CC BY 4.0 data).",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-2023-06-26/raw/main/README.md"
+  },
+  {
+    "id": "whisper-tiny-en",
+    "name": "OpenAI Whisper tiny.en (sherpa-onnx ONNX conversion)",
+    "kind": "model",
+    "version": "tiny.en",
+    "license_spdx": "MIT",
+    "license_url": "https://github.com/openai/whisper/blob/main/LICENSE",
+    "attribution": "Copyright (c) 2022 OpenAI. ONNX conversion by csukuangfj for sherpa-onnx. The conversion's Hugging Face repo has no model card or licence tag; the licence is that of the original OpenAI Whisper weights, which the Whisper README states are released under the MIT License.",
+    "notice_file": "texts/whisper-LICENSE.txt",
+    "source_url": "https://raw.githubusercontent.com/openai/whisper/main/README.md"
+  },
+  {
+    "id": "whisper-base-en",
+    "name": "OpenAI Whisper base.en (sherpa-onnx ONNX conversion)",
+    "kind": "model",
+    "version": "base.en",
+    "license_spdx": "MIT",
+    "license_url": "https://github.com/openai/whisper/blob/main/LICENSE",
+    "attribution": "Copyright (c) 2022 OpenAI. ONNX conversion by csukuangfj for sherpa-onnx. The conversion's Hugging Face repo has no model card or licence tag; the licence is that of the original OpenAI Whisper weights, which the Whisper README states are released under the MIT License.",
+    "notice_file": "texts/whisper-LICENSE.txt",
+    "source_url": "https://raw.githubusercontent.com/openai/whisper/main/README.md"
+  },
+  {
+    "id": "whisper-small-en",
+    "name": "OpenAI Whisper small.en (sherpa-onnx ONNX conversion)",
+    "kind": "model",
+    "version": "small.en",
+    "license_spdx": "MIT",
+    "license_url": "https://github.com/openai/whisper/blob/main/LICENSE",
+    "attribution": "Copyright (c) 2022 OpenAI. ONNX conversion by csukuangfj for sherpa-onnx. The conversion's Hugging Face repo has no model card or licence tag; the licence is that of the original OpenAI Whisper weights, which the Whisper README states are released under the MIT License.",
+    "notice_file": "texts/whisper-LICENSE.txt",
+    "source_url": "https://raw.githubusercontent.com/openai/whisper/main/README.md"
   }
 ]

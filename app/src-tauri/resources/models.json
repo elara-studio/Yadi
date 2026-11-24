@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "id": "stt-stream-zipformer-en-20m",
+      "kind": "stt-stream",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
+      "sha256": "9c559283e8498d3fe95913c79ca1cb454bb26281ac2b102b41306c7d752765d9",
+      "size_bytes": 127887156,
+      "license_id": "sherpa-zipformer-en-20m",
+      "min_ram_gb": 2,
+      "notes": "Streaming English zipformer (20M parameters), icefall LibriSpeech model exported for sherpa-onnx. Smallest and fastest; default live recogniser. min_ram_gb is an estimate to be tuned in Task 13. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+    },
+    {
+      "id": "stt-stream-zipformer-en-2023-06-26",
+      "kind": "stt-stream",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-2023-06-26.tar.bz2",
+      "sha256": "639e25b578e9e997131402199419c13a941f8e4e198e2da1ce57dbf5cf401282",
+      "size_bytes": 310414022,
+      "license_id": "sherpa-zipformer-en-2023-06-26",
+      "min_ram_gb": 4,
+      "notes": "Larger streaming English zipformer (icefall LibriSpeech, 2023-06-26) for machines with more memory. min_ram_gb is an estimate to be tuned in Task 13. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-2023-06-26.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+    },
+    {
+      "id": "stt-final-whisper-tiny-en",
+      "kind": "stt-final",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2",
+      "sha256": "2bd6cf965c8bb3e068ef9fa2191387ee63a9dfa2a4e37582a8109641c20005dd",
+      "size_bytes": 118071777,
+      "license_id": "whisper-tiny-en",
+      "min_ram_gb": 2,
+      "notes": "OpenAI Whisper tiny.en converted to ONNX for sherpa-onnx. Fastest final pass. min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+    },
+    {
+      "id": "stt-final-whisper-base-en",
+      "kind": "stt-final",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2",
+      "sha256": "475bc7052ce299c007f6d5d5407ba8601f819a2867f6eecee510ed17df581542",
+      "size_bytes": 208576005,
+      "license_id": "whisper-base-en",
+      "min_ram_gb": 4,
+      "notes": "OpenAI Whisper base.en converted to ONNX for sherpa-onnx. Default final pass (PLAN Task 11). min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+    },
+    {
+      "id": "stt-final-whisper-small-en",
+      "kind": "stt-final",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-small.en.tar.bz2",
+      "sha256": "0cdba2b8aaab69e04847f3427cc9709574112e67913a1a84b7fec3a8729faa9a",
+      "size_bytes": 635693775,
+      "license_id": "whisper-small-en",
+      "min_ram_gb": 8,
+      "notes": "OpenAI Whisper small.en converted to ONNX for sherpa-onnx. Most accurate final pass, slower. min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-small.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+    }
+  ]
+}
