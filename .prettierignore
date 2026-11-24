@@ -1,0 +1,12 @@
+node_modules
+dist
+target
+coverage
+pnpm-lock.yaml
+app/src-tauri/gen
+app/src-tauri/icons
+app/src/generated
+eval/cases.jsonl
+eval/results
+docs
+eval/README.md

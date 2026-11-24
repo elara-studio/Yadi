@@ -1,0 +1,29 @@
+# dependencies and build output
+node_modules/
+target/
+dist/
+coverage/
+*.tsbuildinfo
+
+# models and large binaries are never committed
+models/
+*.onnx
+*.gguf
+scripts/fixtures/*.wav
+
+# secrets and local config
+.env
+.env.*
+*.local
+
+# eval output
+eval/results/*.json
+
+# generated licence data (built by scripts/gen-licenses.mjs)
+app/src/generated/
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

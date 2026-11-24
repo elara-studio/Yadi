@@ -1,0 +1,9 @@
+{
+  "name": "@yadi/eval",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Prompt-quality eval runner. Depends on @yadi/core from Task 16/17 onward.",
+  "scripts": {}
+}
