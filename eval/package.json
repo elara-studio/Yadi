@@ -4,6 +4,19 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
-  "description": "Prompt-quality eval runner. Depends on @yadi/core from Task 16/17 onward.",
-  "scripts": {}
+  "description": "Prompt-quality eval: runs the @yadi/core pipeline against local Ollama models and scores the results.",
+  "scripts": {
+    "eval": "tsx run.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@yadi/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4",
+    "typescript": "~6.0.3",
+    "vitest": "^3"
+  }
 }
