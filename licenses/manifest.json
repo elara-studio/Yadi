@@ -107,5 +107,82 @@
     "license_url": "UNVERIFIED",
     "attribution": "NOT YET VERIFIED. libonnxruntime.a is inside the sherpa-onnx static-library archives the app links. On 2026-11-24 github.com/microsoft/onnxruntime returned HTTP 404 (repository page, API and raw LICENSE), the archives contain no licence file, so the licence could not be read from a primary source. Verify and add the real notice before any release (PLAN Task 23).",
     "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-v2.0.3-osx-arm64-static-lib.tar.bz2"
+  },
+  {
+    "id": "granite4-3b",
+    "name": "Ollama model granite4:3b",
+    "kind": "model",
+    "version": "granite4:3b",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://ollama.com/library/granite4:3b/blobs/cfc7749b96f6",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/granite4). The license text served by Ollama for this tag (layer cfc7749b96f6, read 2026-11-24) is the Apache License 2.0. The upstream model card was not separately read.",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://ollama.com/library/granite4:3b/blobs/cfc7749b96f6"
+  },
+  {
+    "id": "qwen3-4b-instruct-2507",
+    "name": "Ollama model qwen3:4b-instruct-2507-q4_K_M",
+    "kind": "model",
+    "version": "qwen3:4b-instruct-2507-q4_K_M",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://ollama.com/library/qwen3:4b-instruct-2507-q4_K_M/blobs/d18a5cc71b84",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/qwen3). The license text served by Ollama for this tag (layer d18a5cc71b84, read 2026-11-24) is the Apache License 2.0. The upstream model card was not separately read.",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://ollama.com/library/qwen3:4b-instruct-2507-q4_K_M/blobs/d18a5cc71b84"
+  },
+  {
+    "id": "qwen3-8b",
+    "name": "Ollama model qwen3:8b",
+    "kind": "model",
+    "version": "qwen3:8b",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://ollama.com/library/qwen3:8b/blobs/d18a5cc71b84",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/qwen3). The license text served by Ollama for this tag (layer d18a5cc71b84, read 2026-11-24) is the Apache License 2.0. The upstream model card was not separately read.",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://ollama.com/library/qwen3:8b/blobs/d18a5cc71b84"
+  },
+  {
+    "id": "qwen3-1-7b",
+    "name": "Ollama model qwen3:1.7b",
+    "kind": "model",
+    "version": "qwen3:1.7b",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://ollama.com/library/qwen3:1.7b/blobs/d18a5cc71b84",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/qwen3). The license text served by Ollama for this tag (layer d18a5cc71b84, read 2026-11-24) is the Apache License 2.0. The upstream model card was not separately read.",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://ollama.com/library/qwen3:1.7b/blobs/d18a5cc71b84"
+  },
+  {
+    "id": "phi4-mini",
+    "name": "Ollama model phi4-mini:3.8b",
+    "kind": "model",
+    "version": "phi4-mini:3.8b",
+    "license_spdx": "MIT",
+    "license_url": "https://ollama.com/library/phi4-mini:3.8b/blobs/fa8235e5b48f",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/phi4-mini). The license text served by Ollama for this tag (layer fa8235e5b48f, read 2026-11-24) is the MIT License. Ollama's copy of the MIT text carries no copyright line, so the copyright holder is not stated here; the upstream model card was not separately read. Add the holder before release (PLAN Task 23).",
+    "notice_file": "texts/phi4-mini-LICENSE.txt",
+    "source_url": "https://ollama.com/library/phi4-mini:3.8b/blobs/fa8235e5b48f"
+  },
+  {
+    "id": "gemma4-e2b",
+    "name": "Ollama model gemma4:e2b",
+    "kind": "model",
+    "version": "gemma4:e2b",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://ollama.com/library/gemma4:e2b/blobs/7339fa418c9a",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/gemma4). The license text served by Ollama for this tag (layer 7339fa418c9a, read 2026-11-24) is the Apache License 2.0. The upstream model card was not separately read.",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://ollama.com/library/gemma4:e2b/blobs/7339fa418c9a"
+  },
+  {
+    "id": "gemma4-e4b",
+    "name": "Ollama model gemma4:e4b",
+    "kind": "model",
+    "version": "gemma4:e4b",
+    "license_spdx": "Apache-2.0",
+    "license_url": "https://ollama.com/library/gemma4:e4b/blobs/7339fa418c9a",
+    "attribution": "Model weights as published in the Ollama library (https://ollama.com/library/gemma4). The license text served by Ollama for this tag (layer 7339fa418c9a, read 2026-11-24) is the Apache License 2.0. The upstream model card was not separately read.",
+    "notice_file": "texts/apache-2.0-LICENSE.txt",
+    "source_url": "https://ollama.com/library/gemma4:e4b/blobs/7339fa418c9a"
   }
 ]

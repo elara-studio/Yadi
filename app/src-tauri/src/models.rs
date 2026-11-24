@@ -36,18 +36,41 @@ pub struct ModelEntry {
     pub sha256: Option<String>,
     #[serde(default)]
     pub size_bytes: Option<u64>,
+    /// Size once unpacked on disk (speech models; the archive is deleted after install).
+    /// For LLMs `size_bytes` already is the on-disk size.
+    #[serde(default)]
+    pub installed_bytes: Option<u64>,
     #[serde(default)]
     pub ollama_tag: Option<String>,
     pub license_id: String,
     pub min_ram_gb: u32,
+    /// `"untested"` until the Task 17 eval has scored the model.
+    #[serde(default)]
+    pub status: Option<String>,
     #[serde(default)]
     pub notes: String,
+}
+
+/// One hardware tier: which LLM and speech models a machine of this class gets.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TierEntry {
+    pub id: String,
+    pub min_ram_gb: u32,
+    /// A dedicated GPU with at least this much video memory also qualifies for the tier.
+    #[serde(default)]
+    pub min_vram_gb: Option<u32>,
+    pub llm_model_id: String,
+    pub stt_final_model_id: String,
+    pub stt_stream_model_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Catalog {
     pub version: u32,
     pub models: Vec<ModelEntry>,
+    /// Ordered from the smallest machine to the largest.
+    #[serde(default)]
+    pub llm_tiers: Vec<TierEntry>,
 }
 
 fn is_sha256_hex(s: &str) -> bool {
@@ -116,11 +139,63 @@ impl Catalog {
                     if archive_file_name(url).is_none() {
                         return Err(format!("model '{id}': url must end in .tar.bz2 or .zip"));
                     }
+                    if m.installed_bytes.unwrap_or(0) == 0 {
+                        return Err(format!(
+                            "model '{id}' needs installed_bytes (its size once unpacked)"
+                        ));
+                    }
                 }
                 ModelKind::Llm => {
                     if m.ollama_tag.as_deref().is_none_or(|t| t.trim().is_empty()) {
                         return Err(format!("LLM '{id}' needs an ollama_tag"));
                     }
+                    if m.size_bytes.unwrap_or(0) == 0 {
+                        return Err(format!("LLM '{id}' needs a size_bytes"));
+                    }
+                }
+            }
+        }
+        self.validate_tiers()
+    }
+
+    fn validate_tiers(&self) -> Result<(), String> {
+        let mut seen = HashSet::new();
+        let mut last_ram = 0;
+        for t in &self.llm_tiers {
+            if !seen.insert(t.id.as_str()) {
+                return Err(format!("duplicate tier '{}'", t.id));
+            }
+            if t.min_ram_gb < last_ram {
+                return Err(format!(
+                    "tier '{}': tiers must be ordered from smallest to largest min_ram_gb",
+                    t.id
+                ));
+            }
+            last_ram = t.min_ram_gb;
+            for (what, id, kind) in [
+                ("llm_model_id", &t.llm_model_id, ModelKind::Llm),
+                (
+                    "stt_final_model_id",
+                    &t.stt_final_model_id,
+                    ModelKind::SttFinal,
+                ),
+                (
+                    "stt_stream_model_id",
+                    &t.stt_stream_model_id,
+                    ModelKind::SttStream,
+                ),
+            ] {
+                match self.find(id) {
+                    None => {
+                        return Err(format!(
+                            "tier '{}': {what} '{id}' is not in the catalogue",
+                            t.id
+                        ));
+                    }
+                    Some(m) if m.kind != kind => {
+                        return Err(format!("tier '{}': {what} '{id}' has the wrong kind", t.id));
+                    }
+                    Some(_) => {}
                 }
             }
         }
@@ -298,27 +373,17 @@ mod tests {
             r#"{{"version":1,"models":[{{"id":"m1","kind":"stt-final","license_id":"x","min_ram_gb":2{extra}}}]}}"#
         )
     }
-    const GOOD: &str = r#","url":"https://example.test/a.tar.bz2","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":10"#;
+    const GOOD: &str = r#","url":"https://example.test/a.tar.bz2","sha256":"0000000000000000000000000000000000000000000000000000000000000000","size_bytes":10,"installed_bytes":20"#;
 
     #[test]
     fn the_embedded_catalogue_is_valid_and_complete() {
         let c = Catalog::embedded().unwrap();
-        assert_eq!(c.models.len(), 5);
-        assert_eq!(
-            c.models
-                .iter()
-                .filter(|m| m.kind == ModelKind::SttStream)
-                .count(),
-            2
-        );
-        assert_eq!(
-            c.models
-                .iter()
-                .filter(|m| m.kind == ModelKind::SttFinal)
-                .count(),
-            3
-        );
-        for m in &c.models {
+        let count = |k: ModelKind| c.models.iter().filter(|m| m.kind == k).count();
+        assert_eq!(c.models.len(), 12);
+        assert_eq!(count(ModelKind::SttStream), 2);
+        assert_eq!(count(ModelKind::SttFinal), 3);
+        assert_eq!(count(ModelKind::Llm), 7);
+        for m in c.models.iter().filter(|m| m.kind != ModelKind::Llm) {
             assert!(
                 m.url.as_deref().unwrap().starts_with("https://"),
                 "{}",
@@ -326,8 +391,28 @@ mod tests {
             );
             assert!(is_sha256_hex(m.sha256.as_deref().unwrap()), "{}", m.id);
             assert!(m.size_bytes.unwrap() > 1_000_000, "{}", m.id);
-            assert!(!m.license_id.is_empty());
+            assert!(
+                m.installed_bytes.unwrap() > m.size_bytes.unwrap() / 2,
+                "{}",
+                m.id
+            );
         }
+        for m in c.models.iter().filter(|m| m.kind == ModelKind::Llm) {
+            assert!(
+                m.ollama_tag.is_some() && m.size_bytes.unwrap() > 1_000_000_000,
+                "{}",
+                m.id
+            );
+            assert_eq!(
+                m.status.as_deref(),
+                Some("untested"),
+                "{} stays untested until Task 17",
+                m.id
+            );
+        }
+        assert!(c.models.iter().all(|m| !m.license_id.is_empty()));
+        let tiers: Vec<&str> = c.llm_tiers.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(tiers, ["low", "mid", "high"]);
         assert!(c.find("stt-final-whisper-base-en").is_some());
         assert!(c.find("nope").is_none());
     }
@@ -419,7 +504,7 @@ mod tests {
 
     #[test]
     fn llm_entries_need_an_ollama_tag_not_a_url() {
-        let ok = r#"{"version":1,"models":[{"id":"llm1","kind":"llm","ollama_tag":"qwen2.5:3b","license_id":"x","min_ram_gb":8}]}"#;
+        let ok = r#"{"version":1,"models":[{"id":"llm1","kind":"llm","ollama_tag":"qwen2.5:3b","size_bytes":2000000000,"license_id":"x","min_ram_gb":8}]}"#;
         assert!(Catalog::parse(ok).is_ok());
         let bad = r#"{"version":1,"models":[{"id":"llm1","kind":"llm","license_id":"x","min_ram_gb":8}]}"#;
         assert!(Catalog::parse(bad).unwrap_err().contains("ollama_tag"));

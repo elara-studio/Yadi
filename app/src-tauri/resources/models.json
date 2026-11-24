@@ -9,7 +9,8 @@
       "size_bytes": 127887156,
       "license_id": "sherpa-zipformer-en-20m",
       "min_ram_gb": 2,
-      "notes": "Streaming English zipformer (20M parameters), icefall LibriSpeech model exported for sherpa-onnx. Smallest and fastest; default live recogniser. min_ram_gb is an estimate to be tuned in Task 13. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+      "notes": "Streaming English zipformer (20M parameters), icefall LibriSpeech model exported for sherpa-onnx. Smallest and fastest; default live recogniser. min_ram_gb is an estimate to be tuned in Task 13. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size.",
+      "installed_bytes": 136398588
     },
     {
       "id": "stt-stream-zipformer-en-2023-06-26",
@@ -19,7 +20,8 @@
       "size_bytes": 310414022,
       "license_id": "sherpa-zipformer-en-2023-06-26",
       "min_ram_gb": 4,
-      "notes": "Larger streaming English zipformer (icefall LibriSpeech, 2023-06-26) for machines with more memory. min_ram_gb is an estimate to be tuned in Task 13. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-2023-06-26.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+      "notes": "Larger streaming English zipformer (icefall LibriSpeech, 2023-06-26) for machines with more memory. min_ram_gb is an estimate to be tuned in Task 13. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-2023-06-26.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size.",
+      "installed_bytes": 335746916
     },
     {
       "id": "stt-final-whisper-tiny-en",
@@ -29,7 +31,8 @@
       "size_bytes": 118071777,
       "license_id": "whisper-tiny-en",
       "min_ram_gb": 2,
-      "notes": "OpenAI Whisper tiny.en converted to ONNX for sherpa-onnx. Fastest final pass. min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+      "notes": "OpenAI Whisper tiny.en converted to ONNX for sherpa-onnx. Fastest final pass. min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size.",
+      "installed_bytes": 256603197
     },
     {
       "id": "stt-final-whisper-base-en",
@@ -39,7 +42,8 @@
       "size_bytes": 208576005,
       "license_id": "whisper-base-en",
       "min_ram_gb": 4,
-      "notes": "OpenAI Whisper base.en converted to ONNX for sherpa-onnx. Default final pass (PLAN Task 11). min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+      "notes": "OpenAI Whisper base.en converted to ONNX for sherpa-onnx. Default final pass (PLAN Task 11). min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-base.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size.",
+      "installed_bytes": 453084831
     },
     {
       "id": "stt-final-whisper-small-en",
@@ -49,7 +53,102 @@
       "size_bytes": 635693775,
       "license_id": "whisper-small-en",
       "min_ram_gb": 8,
-      "notes": "OpenAI Whisper small.en converted to ONNX for sherpa-onnx. Most accurate final pass, slower. min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-small.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size."
+      "notes": "OpenAI Whisper small.en converted to ONNX for sherpa-onnx. Most accurate final pass, slower. min_ram_gb is an estimate. Source: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-small.en.tar.bz2 (sherpa-onnx 'asr-models' release). SHA-256 and size computed by downloading the file twice; both runs matched and the size equals GitHub's published asset size.",
+      "installed_bytes": 1344979489
+    },
+    {
+      "id": "llm-granite4-3b",
+      "kind": "llm",
+      "ollama_tag": "granite4:3b",
+      "size_bytes": 2099520968,
+      "license_id": "granite4-3b",
+      "min_ram_gb": 8,
+      "status": "untested",
+      "notes": "IBM Granite 4.0 Micro (3B). Low tier (8 GB). Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    },
+    {
+      "id": "llm-qwen3-4b-instruct-2507",
+      "kind": "llm",
+      "ollama_tag": "qwen3:4b-instruct-2507-q4_K_M",
+      "size_bytes": 2497293316,
+      "license_id": "qwen3-4b-instruct-2507",
+      "min_ram_gb": 16,
+      "status": "untested",
+      "notes": "Qwen3-4B-Instruct-2507 (non-thinking), q4_K_M. Mid tier (16 GB). Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    },
+    {
+      "id": "llm-qwen3-8b",
+      "kind": "llm",
+      "ollama_tag": "qwen3:8b",
+      "size_bytes": 5225387677,
+      "license_id": "qwen3-8b",
+      "min_ram_gb": 32,
+      "status": "untested",
+      "notes": "Qwen3 8B. High tier (32 GB, or a dedicated GPU with 12 GB). Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    },
+    {
+      "id": "llm-qwen3-1-7b",
+      "kind": "llm",
+      "ollama_tag": "qwen3:1.7b",
+      "size_bytes": 1359292957,
+      "license_id": "qwen3-1-7b",
+      "min_ram_gb": 8,
+      "status": "untested",
+      "notes": "Qwen3 1.7B. Smaller alternative for the low tier; not assigned to a tier. Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    },
+    {
+      "id": "llm-phi4-mini",
+      "kind": "llm",
+      "ollama_tag": "phi4-mini:3.8b",
+      "size_bytes": 2491876363,
+      "license_id": "phi4-mini",
+      "min_ram_gb": 16,
+      "status": "untested",
+      "notes": "Microsoft Phi-4-mini (3.8B). Alternative mid-tier candidate; not assigned to a tier. Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    },
+    {
+      "id": "llm-gemma4-e2b",
+      "kind": "llm",
+      "ollama_tag": "gemma4:e2b",
+      "size_bytes": 4587156264,
+      "license_id": "gemma4-e2b",
+      "min_ram_gb": 16,
+      "status": "untested",
+      "notes": "Gemma 4 E2B (includes a vision projector, so it is larger than its name suggests). Alternative; not assigned to a tier. Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    },
+    {
+      "id": "llm-gemma4-e4b",
+      "kind": "llm",
+      "ollama_tag": "gemma4:e4b",
+      "size_bytes": 6583656264,
+      "license_id": "gemma4-e4b",
+      "min_ram_gb": 16,
+      "status": "untested",
+      "notes": "Gemma 4 E4B (includes a vision projector). Alternative; not assigned to a tier. Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+    }
+  ],
+  "llm_tiers": [
+    {
+      "id": "low",
+      "min_ram_gb": 8,
+      "llm_model_id": "llm-granite4-3b",
+      "stt_final_model_id": "stt-final-whisper-base-en",
+      "stt_stream_model_id": "stt-stream-zipformer-en-2023-06-26"
+    },
+    {
+      "id": "mid",
+      "min_ram_gb": 16,
+      "llm_model_id": "llm-qwen3-4b-instruct-2507",
+      "stt_final_model_id": "stt-final-whisper-base-en",
+      "stt_stream_model_id": "stt-stream-zipformer-en-2023-06-26"
+    },
+    {
+      "id": "high",
+      "min_ram_gb": 32,
+      "min_vram_gb": 12,
+      "llm_model_id": "llm-qwen3-8b",
+      "stt_final_model_id": "stt-final-whisper-small-en",
+      "stt_stream_model_id": "stt-stream-zipformer-en-2023-06-26"
     }
   ]
 }

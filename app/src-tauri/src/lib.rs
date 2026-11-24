@@ -1,9 +1,11 @@
 mod audio;
 mod download;
+mod hardware;
 mod hotkey;
 mod models;
 mod settings;
 mod stt;
+mod tiers;
 mod windows;
 
 use tauri_plugin_log::{Target, TargetKind};
@@ -38,6 +40,8 @@ pub fn run() {
             stt::commands::stt_start,
             stt::commands::stt_stop,
             stt::commands::final_pass_run,
+            hardware::get_hardware_profile,
+            tiers::select_model_tier,
             models::list_models,
             models::download_model,
             models::cancel_download,
