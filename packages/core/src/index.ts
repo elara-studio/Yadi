@@ -1,3 +1,5 @@
+export * from "./machine";
+
 export const CORE_VERSION = "0.1.0";
 
 /** Placeholder export so the package has a public surface; real modules arrive in later tasks. */
