@@ -8,3 +8,4 @@ export function coreVersion(): string {
 }
 export * from "./transcript";
 export * from "./setup";
+export * from "./pipeline";
