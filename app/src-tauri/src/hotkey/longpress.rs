@@ -32,11 +32,13 @@ pub struct Mods {
 }
 
 impl Mods {
+    #[cfg(test)]
     pub const NONE: Mods = Mods {
         ctrl: false,
         alt: false,
         meta: false,
     };
+    #[cfg(test)]
     pub const CTRL: Mods = Mods {
         ctrl: true,
         alt: false,
@@ -107,7 +109,14 @@ impl LongPressDetector {
         self.threshold_ms = u64::from(clamp_threshold(threshold_ms));
     }
 
-    /// When the hook should deliver a `Tick`, if a Y press is being timed.
+    /// True while a Y press is being timed or has been consumed (summoned / replayed).
+    pub fn is_tracking(&self) -> bool {
+        self.state != State::Idle
+    }
+
+    /// When a `Tick` is due, if a Y press is being timed. (The hook polls on a fixed interval
+    /// instead; this is for tests and for a future timer-based scheduler.)
+    #[cfg(test)]
     pub fn next_deadline(&self) -> Option<u64> {
         match self.state {
             State::Pending { since } => Some(since + self.threshold_ms),

@@ -24,6 +24,8 @@ pub fn run() {
             windows::show_context_menu,
             settings::get_settings,
             settings::set_settings,
+            hotkey::get_notice,
+            hotkey::open_permission_settings,
         ])
         .on_menu_event(|app, event| windows::menu::handle_menu_event(app, event.id().as_ref()))
         .setup(|app| {

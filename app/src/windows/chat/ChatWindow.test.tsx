@@ -8,7 +8,12 @@ const listen = vi.fn((name: string, cb: (e: { payload: unknown }) => void) => {
   return Promise.resolve(() => handlers.delete(name));
 });
 
+const invoke = vi.fn<(cmd: string) => Promise<unknown>>((cmd) =>
+  Promise.resolve(cmd === "get_notice" ? null : undefined),
+);
+
 vi.mock("@tauri-apps/api/event", () => ({ emit, listen }));
+vi.mock("@tauri-apps/api/core", () => ({ invoke }));
 vi.mock("@tauri-apps/api/app", () => ({ getVersion: () => Promise.resolve("0.1.0") }));
 
 const { ChatWindow, KEY_HINT } = await import("./ChatWindow");
@@ -16,6 +21,7 @@ const { ChatWindow, KEY_HINT } = await import("./ChatWindow");
 describe("ChatWindow", () => {
   beforeEach(() => {
     emit.mockClear();
+    invoke.mockClear();
     handlers.clear();
   });
 
@@ -50,6 +56,47 @@ describe("ChatWindow", () => {
     expect(screen.getByLabelText("About Yadi")).toBeInTheDocument();
     act(() => handlers.get("app:view")?.({ payload: { view: "about" } }));
     await act(async () => {}); // let AboutView's async loading settle
+    expect(screen.queryByText(KEY_HINT)).not.toBeInTheDocument();
+  });
+
+  it("shows a startup notice with a Fix button that opens the permission settings", async () => {
+    invoke.mockImplementation((cmd: string) =>
+      Promise.resolve(
+        cmd === "get_notice"
+          ? { message: "Hold-Y needs keyboard permission.", action: "fix-permissions" }
+          : undefined,
+      ),
+    );
+    render(<ChatWindow />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Hold-Y needs keyboard permission.");
+    fireEvent.click(screen.getByRole("button", { name: "Fix" }));
+    expect(invoke).toHaveBeenCalledWith("open_permission_settings");
+    fireEvent.click(screen.getByLabelText("Dismiss"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    invoke.mockImplementation((cmd: string) =>
+      Promise.resolve(cmd === "get_notice" ? null : undefined),
+    );
+  });
+
+  it("a notice without an action has no Fix button", async () => {
+    invoke.mockImplementation((cmd: string) =>
+      Promise.resolve(
+        cmd === "get_notice" ? { message: "Hold-Y is unavailable.", action: null } : undefined,
+      ),
+    );
+    render(<ChatWindow />);
+    await screen.findByRole("alert");
+    expect(screen.queryByRole("button", { name: "Fix" })).not.toBeInTheDocument();
+    invoke.mockImplementation((cmd: string) =>
+      Promise.resolve(cmd === "get_notice" ? null : undefined),
+    );
+  });
+
+  it("the gear button opens Settings", async () => {
+    render(<ChatWindow />);
+    fireEvent.click(screen.getByLabelText("Settings"));
+    await act(async () => {});
+    expect(invoke).toHaveBeenCalledWith("get_settings");
     expect(screen.queryByText(KEY_HINT)).not.toBeInTheDocument();
   });
 });

@@ -97,11 +97,19 @@ pub fn create_windows(app: &AppHandle) -> tauri::Result<()> {
         .build()?;
     // The chat is only ever hidden, never destroyed.
     let chat_for_close = chat.clone();
-    chat.on_window_event(move |event| {
-        if let WindowEvent::CloseRequested { api, .. } = event {
+    let focus_handle = app.clone();
+    chat.on_window_event(move |event| match event {
+        WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
             let _ = chat_for_close.hide();
         }
+        // Own-window rule for the global hook: no Y interception while the chat has focus.
+        WindowEvent::Focused(focused) => {
+            if let Some(hook) = focus_handle.try_state::<crate::hotkey::hook::HookState>() {
+                hook.shared.set_chat_focused(*focused);
+            }
+        }
+        _ => {}
     });
 
     log::info!("windows created; mascot at ({x}, {y})");

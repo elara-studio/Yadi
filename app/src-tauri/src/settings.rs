@@ -9,7 +9,7 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_global_shortcut::Shortcut;
 use tauri_plugin_store::StoreExt;
 
-use crate::hotkey::{chord, longpress};
+use crate::hotkey::{self, longpress};
 
 const STORE_FILE: &str = "settings.json";
 const STORE_KEY: &str = "settings";
@@ -113,25 +113,22 @@ pub fn set_settings(
     let settings = settings.normalized();
     settings.validate()?;
     // Apply first: if the chord cannot be registered (taken by another app) nothing changes.
-    chord::apply(&app, &settings)?;
+    hotkey::apply(&app, &settings)?;
     save(&app, &settings)?;
     *state.0.lock().expect("settings lock") = settings.clone();
     Ok(settings)
 }
 
-/// Called once from `setup`: loads settings, shares them, and registers the chord if needed.
+/// Called once from `setup`: loads settings, shares them, and starts the summon hotkey.
 pub fn init(app: &AppHandle) {
     let settings = load(app);
-    if let Err(e) = chord::apply(app, &settings) {
-        // Never crash on a shortcut problem; the user can pick another one in settings.
-        log::warn!("could not register the summon chord: {e}");
-    }
     log::info!(
         "settings loaded: summon mode {:?}, threshold {} ms",
         settings.summon.mode,
         settings.summon.threshold_ms
     );
-    app.manage(SettingsState(Mutex::new(settings)));
+    app.manage(SettingsState(Mutex::new(settings.clone())));
+    hotkey::init(app, &settings);
 }
 
 #[cfg(test)]

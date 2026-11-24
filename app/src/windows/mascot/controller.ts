@@ -15,7 +15,7 @@ export interface AppStatePayload {
 }
 
 /** Everything the Controller needs from the outside world, injected so it is testable. */
-export type ChatView = "chat" | "about";
+export type ChatView = "chat" | "about" | "settings";
 
 export interface ControllerPorts {
   showChat(): void | Promise<void>;

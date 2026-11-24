@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import type { AppEvent } from "@yadi/core";
 import { AboutView } from "../../about/AboutView";
+import { SettingsView } from "../../settings/SettingsView";
 import type { AppStatePayload, ChatView } from "../mascot/controller";
 import { useKeyboardControls } from "./useKeyboardControls";
 
 const sendToController = (event: AppEvent) => void emit("app:event", event);
+
+/** Mirrors `Notice` in src-tauri/src/hotkey/mod.rs. */
+interface Notice {
+  message: string;
+  action: string | null;
+}
 
 export const KEY_HINT = "Y = next step · Esc = stop / hide";
 
@@ -13,8 +21,17 @@ export const KEY_HINT = "Y = next step · Esc = stop / hide";
 export function ChatWindow() {
   const [app, setApp] = useState<AppStatePayload>({ state: "minimized", editing: false });
   const [view, setView] = useState<ChatView>("chat");
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   useKeyboardControls(sendToController);
+
+  useEffect(() => {
+    // A notice raised during startup (e.g. Hold-Y fell back to the chord) waits in Rust.
+    invoke<Notice | null>("get_notice").then(
+      (n) => setNotice(n ?? null),
+      () => {},
+    );
+  }, []);
 
   useEffect(() => {
     const pending = [
@@ -33,6 +50,10 @@ export function ChatWindow() {
           <div className="chat-body">
             <AboutView onBack={() => setView("chat")} />
           </div>
+        ) : view === "settings" ? (
+          <div className="chat-body">
+            <SettingsView onBack={() => setView("chat")} />
+          </div>
         ) : (
           <>
             <div className="chat-header">
@@ -43,6 +64,15 @@ export function ChatWindow() {
               <button
                 type="button"
                 className="chat-info"
+                aria-label="Settings"
+                title="Settings"
+                onClick={() => setView("settings")}
+              >
+                ⚙
+              </button>
+              <button
+                type="button"
+                className="chat-info"
                 aria-label="About Yadi"
                 title="About"
                 onClick={() => setView("about")}
@@ -50,6 +80,19 @@ export function ChatWindow() {
                 i
               </button>
             </div>
+            {notice && (
+              <div className="chat-notice" role="alert">
+                <span>{notice.message}</span>
+                {notice.action === "fix-permissions" && (
+                  <button type="button" onClick={() => void invoke("open_permission_settings")}>
+                    Fix
+                  </button>
+                )}
+                <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}>
+                  ×
+                </button>
+              </div>
+            )}
             <div className="chat-body">Chat overlay placeholder.</div>
             <div className="chat-hint">{KEY_HINT}</div>
           </>
