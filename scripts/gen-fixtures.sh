@@ -26,3 +26,4 @@ make_fixture() {
 make_fixture sentence-1 "write a short email to my manager asking for friday off"
 make_fixture sentence-2 "the login screen crashes when I rotate the phone"
 make_fixture sentence-3 "explain how a binary search tree works in simple words"
+make_fixture sentence-4 "add a Hilt module to the Kotlin project"

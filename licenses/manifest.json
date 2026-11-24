@@ -36,7 +36,7 @@
     "id": "sherpa-onnx",
     "name": "sherpa-onnx",
     "kind": "runtime",
-    "version": "UNVERIFIED (pinned in Task 10)",
+    "version": "2.0.3 (official Rust crate, statically linked; prebuilt libraries downloaded at build time from the k2-fsa/sherpa-onnx v2.0.3 release)",
     "license_spdx": "Apache-2.0",
     "license_url": "https://github.com/k2-fsa/sherpa-onnx/blob/master/LICENSE",
     "attribution": "sherpa-onnx by the k2-fsa project (Apache License 2.0 as published in its repository)",
@@ -97,5 +97,15 @@
     "attribution": "Copyright (c) 2022 OpenAI. ONNX conversion by csukuangfj for sherpa-onnx. The conversion's Hugging Face repo has no model card or licence tag; the licence is that of the original OpenAI Whisper weights, which the Whisper README states are released under the MIT License.",
     "notice_file": "texts/whisper-LICENSE.txt",
     "source_url": "https://raw.githubusercontent.com/openai/whisper/main/README.md"
+  },
+  {
+    "id": "onnxruntime",
+    "name": "ONNX Runtime (statically linked inside the sherpa-onnx prebuilt libraries)",
+    "kind": "runtime",
+    "version": "as built into sherpa-onnx v2.0.3 (libonnxruntime.a)",
+    "license_spdx": "UNVERIFIED",
+    "license_url": "UNVERIFIED",
+    "attribution": "NOT YET VERIFIED. libonnxruntime.a is inside the sherpa-onnx static-library archives the app links. On 2026-11-24 github.com/microsoft/onnxruntime returned HTTP 404 (repository page, API and raw LICENSE), the archives contain no licence file, so the licence could not be read from a primary source. Verify and add the real notice before any release (PLAN Task 23).",
+    "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-v2.0.3-osx-arm64-static-lib.tar.bz2"
   }
 ]

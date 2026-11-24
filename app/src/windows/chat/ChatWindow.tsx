@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import type { AppEvent } from "@yadi/core";
+import type { AppEvent, TranscriptSnapshot } from "@yadi/core";
 import { AboutView } from "../../about/AboutView";
 import { SettingsView } from "../../settings/SettingsView";
 import type { AppStatePayload, ChatView } from "../mascot/controller";
@@ -22,6 +22,7 @@ export function ChatWindow() {
   const [app, setApp] = useState<AppStatePayload>({ state: "minimized", editing: false });
   const [view, setView] = useState<ChatView>("chat");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [transcript, setTranscript] = useState<TranscriptSnapshot>({ segments: [], partial: "" });
 
   useKeyboardControls(sendToController);
 
@@ -37,6 +38,7 @@ export function ChatWindow() {
     const pending = [
       listen<AppStatePayload>("app:state", (e) => setApp(e.payload)),
       listen<{ view: ChatView }>("app:view", (e) => setView(e.payload.view)),
+      listen<TranscriptSnapshot>("app:transcript", (e) => setTranscript(e.payload)),
     ];
     // Ask the Controller for the current state in case we loaded after its last broadcast.
     void Promise.all(pending).then(() => emit("app:event", { type: "SYNC" }));
@@ -93,7 +95,20 @@ export function ChatWindow() {
                 </button>
               </div>
             )}
-            <div className="chat-body">Chat overlay placeholder.</div>
+            <div className="chat-body" data-testid="transcript">
+              {transcript.segments.length === 0 && transcript.partial === "" ? (
+                <span className="transcript-empty">Press Y and start talking.</span>
+              ) : (
+                <>
+                  {transcript.segments.map((s) => (
+                    <span key={s.id} className="transcript-final">
+                      {s.text}{" "}
+                    </span>
+                  ))}
+                  <span className="transcript-partial">{transcript.partial}</span>
+                </>
+              )}
+            </div>
             <div className="chat-hint">{KEY_HINT}</div>
           </>
         )}

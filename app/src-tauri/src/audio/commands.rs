@@ -22,6 +22,14 @@ pub struct AudioState {
     pub buffer: RecordingBuffer,
 }
 
+impl AudioState {
+    /// A queue of the running session's audio chunks (for speech recognition), if recording.
+    pub fn subscribe(&self) -> Option<std::sync::Arc<super::queue::ChunkQueue>> {
+        let slot = self.session.lock().unwrap_or_else(|e| e.into_inner());
+        slot.as_ref().map(Session::subscribe)
+    }
+}
+
 struct TauriEvents(AppHandle);
 
 impl AudioEvents for TauriEvents {

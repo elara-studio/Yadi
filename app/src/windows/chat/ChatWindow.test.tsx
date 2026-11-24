@@ -99,4 +99,18 @@ describe("ChatWindow", () => {
     expect(invoke).toHaveBeenCalledWith("get_settings");
     expect(screen.queryByText(KEY_HINT)).not.toBeInTheDocument();
   });
+
+  it("shows the transcript: finished segments plus the revising partial", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    expect(screen.getByText("Press Y and start talking.")).toBeInTheDocument();
+    act(() =>
+      handlers.get("app:transcript")?.({
+        payload: { segments: [{ id: 0, text: "Write a short email." }], partial: "Thanks a" },
+      }),
+    );
+    const box = screen.getByTestId("transcript");
+    expect(box).toHaveTextContent("Write a short email. Thanks a");
+    expect(screen.queryByText("Press Y and start talking.")).not.toBeInTheDocument();
+  });
 });

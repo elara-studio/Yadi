@@ -3,6 +3,7 @@ mod download;
 mod hotkey;
 mod models;
 mod settings;
+mod stt;
 mod windows;
 
 use tauri_plugin_log::{Target, TargetKind};
@@ -21,6 +22,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(audio::commands::AudioState::default())
         .manage(models::DownloadState::default())
+        .manage(stt::commands::SttState::default())
         .invoke_handler(tauri::generate_handler![
             windows::show_chat,
             windows::hide_chat,
@@ -32,6 +34,8 @@ pub fn run() {
             audio::commands::audio_start,
             audio::commands::audio_stop,
             audio::commands::audio_clear,
+            stt::commands::stt_start,
+            stt::commands::stt_stop,
             models::list_models,
             models::download_model,
             models::cancel_download,

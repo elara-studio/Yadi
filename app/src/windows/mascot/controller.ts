@@ -3,6 +3,8 @@ import {
   type AppState,
   type Effect,
   type Model,
+  Transcript,
+  type TranscriptSnapshot,
   initialModel,
   transition,
 } from "@yadi/core";
@@ -28,6 +30,12 @@ export interface ControllerPorts {
   stopAudio(): void | Promise<void>;
   /** Frees the in-memory recording. */
   clearAudio(): void | Promise<void>;
+  /** Starts speech recognition on the running recording (Rust `stt_start`). */
+  startStt(): void | Promise<void>;
+  /** Flushes and stops speech recognition (the last words arrive as a final segment). */
+  stopStt(): void | Promise<void>;
+  /** Sends the transcript to the chat window (`app:transcript`). */
+  broadcastTranscript(snapshot: TranscriptSnapshot): void | Promise<void>;
   /** Tells the chat window which screen to show (`app:view`). */
   showView(view: ChatView): void | Promise<void>;
   /** Diagnostics only. Never pass transcripts, audio or prompts here. */
@@ -62,6 +70,12 @@ export function mascotStateFor(model: Model): MascotState {
   }
 }
 
+function textOf(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) return null;
+  const text = (payload as { text?: unknown }).text;
+  return typeof text === "string" ? text : null;
+}
+
 /** Typed audio errors arrive as `{kind, message}`; anything else is shown as text. */
 export function errorMessage(e: unknown): string {
   if (typeof e === "string") return e;
@@ -87,6 +101,9 @@ export type Listener = (model: Model) => void;
 export class Controller {
   private current: Model;
   private listeners = new Set<Listener>();
+  private readonly transcript = new Transcript();
+  /** Resolves when the most recent recording has fully stopped and its last words have arrived. */
+  private settled: Promise<void> = Promise.resolve();
 
   /**
    * Starts in `minimized` (mascot visible, chat hidden). Task 15 will start in `setup` until
@@ -127,6 +144,7 @@ export class Controller {
     if (type === "SYNC") {
       // The chat window just loaded and wants the current state.
       this.broadcast();
+      void this.ports.broadcastTranscript(this.transcript.snapshot());
       return;
     }
     if (!EVENT_TYPES.has(type)) {
@@ -155,16 +173,54 @@ export class Controller {
     void this.ports.showView("about");
   }
 
-  /** A failed `audio_start` (no microphone, permission...) ends the recording with a message. */
-  private startAudio(): void {
-    // The port is called synchronously; only the failure handling is asynchronous.
+  /** Microphone first, then speech recognition. A failure of either ends the recording. */
+  private startRecording(): void {
     void (async () => {
       try {
         await this.ports.startAudio();
+        await this.ports.startStt();
       } catch (e) {
         this.dispatch({ type: "RECORD_FAILED", message: errorMessage(e) });
       }
     })();
+  }
+
+  /** Stops the microphone first (so the audio tail is complete), then flushes speech recognition. */
+  private stopRecording(): void {
+    this.settled = this.settled.then(async () => {
+      await this.guard(this.ports.stopAudio());
+      await this.guard(this.ports.stopStt());
+    });
+  }
+
+  /**
+   * Resolves once the latest recording has stopped and the recogniser's flush has been requested.
+   * The processing pipeline (Task 19) waits for this so the transcript is complete.
+   */
+  whenSettled(): Promise<void> {
+    return this.settled;
+  }
+
+  /** `stt:partial {text}` from Rust. */
+  handleSttPartial(payload: unknown): void {
+    const text = textOf(payload);
+    if (text === null) return;
+    this.transcript.applyPartial(text);
+    this.transcriptChanged();
+  }
+
+  /** `stt:final {id, text}` from Rust. */
+  handleSttFinal(payload: unknown): void {
+    if (typeof payload !== "object" || payload === null) return;
+    const { id, text } = payload as { id?: unknown; text?: unknown };
+    if (typeof id !== "number" || typeof text !== "string") return;
+    this.transcript.applyFinal(id, text);
+    this.transcriptChanged();
+  }
+
+  private transcriptChanged(): void {
+    void this.ports.broadcastTranscript(this.transcript.snapshot());
+    this.dispatch({ type: "TRANSCRIPT_CHANGED", hasTranscript: this.transcript.hasContent() });
   }
 
   private async guard(work: void | Promise<void>): Promise<void> {
@@ -201,12 +257,14 @@ export class Controller {
         void this.ports.focusChat();
         break;
       case "startRecording":
-        this.startAudio();
+        this.startRecording();
         break;
       case "stopRecording":
-        void this.guard(this.ports.stopAudio());
+        this.stopRecording();
         break;
       case "clearSession":
+        this.transcript.clear();
+        void this.ports.broadcastTranscript(this.transcript.snapshot());
         void this.guard(this.ports.clearAudio());
         break;
       default:

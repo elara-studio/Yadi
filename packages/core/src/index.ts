@@ -6,3 +6,4 @@ export const CORE_VERSION = "0.1.0";
 export function coreVersion(): string {
   return CORE_VERSION;
 }
+export * from "./transcript";

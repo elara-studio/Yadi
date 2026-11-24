@@ -9,6 +9,9 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     focusChat: vi.fn(() => void calls.push("focusChat")),
     showView: vi.fn((v) => void calls.push(`view:${v}`)),
     startAudio: vi.fn(),
+    startStt: vi.fn(),
+    stopStt: vi.fn(),
+    broadcastTranscript: vi.fn(),
     stopAudio: vi.fn(),
     clearAudio: vi.fn(),
     broadcast: vi.fn((p) => void calls.push(`broadcast:${p.state}:${p.editing}`)),
@@ -36,7 +39,7 @@ describe("Controller", () => {
     expect(ports.focusChat).toHaveBeenCalledTimes(2);
   });
 
-  it("walks idle -> recording -> processing -> result with Y, driving the microphone", () => {
+  it("walks idle -> recording -> processing -> result with Y, driving the microphone", async () => {
     const { controller, ports } = setup();
     controller.dispatch({ type: "SUMMON" });
     controller.dispatch({ type: "KEY_Y" });
@@ -46,6 +49,7 @@ describe("Controller", () => {
     expect(controller.model.state).toBe("processing");
     controller.dispatch({ type: "PROCESS_DONE" });
     expect(controller.model.state).toBe("result");
+    await controller.whenSettled();
     expect(ports.startAudio).toHaveBeenCalledTimes(1);
     expect(ports.stopAudio).toHaveBeenCalledTimes(1); // Y with a transcript stops recording
     expect(ports.log).toHaveBeenCalledWith("effect (stub): startProcessing");
@@ -57,7 +61,7 @@ describe("Controller", () => {
     expect(controller.model.state).toBe("idle");
   });
 
-  it("toggleChat while recording stops and hides (two Escs)", () => {
+  it("toggleChat while recording stops and hides (two Escs)", async () => {
     const { controller, ports } = setup({
       state: "recording",
       editing: false,
@@ -66,6 +70,7 @@ describe("Controller", () => {
     controller.toggleChat();
     expect(controller.model.state).toBe("minimized");
     expect(ports.hideChat).toHaveBeenCalledTimes(1);
+    await controller.whenSettled();
     expect(ports.stopAudio).toHaveBeenCalledTimes(1);
   });
 
@@ -137,6 +142,7 @@ describe("audio wiring", () => {
     await flush();
     expect(ports.startAudio).toHaveBeenCalledTimes(1);
     controller.dispatch({ type: "KEY_ESC" });
+    await controller.whenSettled();
     expect(ports.stopAudio).toHaveBeenCalledTimes(1);
     expect(controller.model.state).toBe("idle");
   });
@@ -196,5 +202,123 @@ describe("audio wiring", () => {
     [undefined, "Recording failed"],
   ])("errorMessage(%j)", (input, expected) => {
     expect(errorMessage(input)).toBe(expected);
+  });
+});
+
+describe("speech recognition wiring", () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  const recording = () => setup({ state: "recording", editing: false, hasTranscript: false });
+
+  it("starts the microphone first, then speech recognition", async () => {
+    const { controller, ports } = setup({ state: "idle", editing: false, hasTranscript: false });
+    const order: string[] = [];
+    (ports.startAudio as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      await flush();
+      order.push("audio");
+    });
+    (ports.startStt as ReturnType<typeof vi.fn>).mockImplementation(() => void order.push("stt"));
+    controller.dispatch({ type: "KEY_Y" });
+    await flush();
+    await flush();
+    expect(order).toEqual(["audio", "stt"]);
+  });
+
+  it("a failing stt_start (model missing) ends the recording with its message", async () => {
+    const { controller, ports } = setup({ state: "idle", editing: false, hasTranscript: false });
+    (ports.startStt as ReturnType<typeof vi.fn>).mockRejectedValue(
+      "The speech recognition model is not installed yet.",
+    );
+    controller.dispatch({ type: "KEY_Y" });
+    await flush();
+    await flush();
+    expect(controller.model.state).toBe("idle");
+    expect(ports.stopAudio).toHaveBeenCalled();
+  });
+
+  it("stops the microphone first, then flushes speech recognition", async () => {
+    const { controller, ports } = recording();
+    const order: string[] = [];
+    (ports.stopAudio as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      await flush();
+      order.push("audio");
+    });
+    (ports.stopStt as ReturnType<typeof vi.fn>).mockImplementation(() => void order.push("stt"));
+    controller.dispatch({ type: "KEY_ESC" });
+    await controller.whenSettled();
+    expect(order).toEqual(["audio", "stt"]);
+  });
+
+  it("a failing stopStt is logged and does not break whenSettled", async () => {
+    const { controller, ports } = recording();
+    (ports.stopStt as ReturnType<typeof vi.fn>).mockRejectedValue("boom");
+    controller.dispatch({ type: "KEY_ESC" });
+    await expect(controller.whenSettled()).resolves.toBeUndefined();
+    expect(ports.log).toHaveBeenCalledWith("audio command failed: boom");
+  });
+
+  it("a partial updates the transcript, broadcasts it and sets hasTranscript", () => {
+    const { controller, ports } = recording();
+    controller.handleSttPartial({ text: "Write a short" });
+    expect(controller.model.hasTranscript).toBe(true);
+    expect(ports.broadcastTranscript).toHaveBeenLastCalledWith({
+      segments: [],
+      partial: "Write a short",
+    });
+  });
+
+  it("a final replaces the partial", () => {
+    const { controller, ports } = recording();
+    controller.handleSttPartial({ text: "Write a short" });
+    controller.handleSttFinal({ id: 0, text: "Write a short email." });
+    expect(ports.broadcastTranscript).toHaveBeenLastCalledWith({
+      segments: [{ id: 0, text: "Write a short email." }],
+      partial: "",
+    });
+  });
+
+  it("Y after speech goes to processing; Y with no speech says nothing heard", () => {
+    const heard = recording();
+    heard.controller.handleSttPartial({ text: "hello" });
+    heard.controller.dispatch({ type: "KEY_Y" });
+    expect(heard.controller.model.state).toBe("processing");
+
+    const silent = recording();
+    silent.controller.dispatch({ type: "KEY_Y" });
+    expect(silent.controller.model.state).toBe("idle");
+  });
+
+  it("an empty partial after speech does not keep hasTranscript true", () => {
+    const { controller } = recording();
+    controller.handleSttPartial({ text: "hi" });
+    controller.handleSttPartial({ text: "" });
+    expect(controller.model.hasTranscript).toBe(false);
+  });
+
+  it("ignores malformed stt events", () => {
+    const { controller, ports } = recording();
+    for (const bad of [null, undefined, 3, "x", {}, { text: 5 }]) controller.handleSttPartial(bad);
+    for (const bad of [null, {}, { id: "0", text: "x" }, { id: 0 }]) controller.handleSttFinal(bad);
+    expect(ports.broadcastTranscript).not.toHaveBeenCalled();
+    expect(controller.model.hasTranscript).toBe(false);
+  });
+
+  it("clearSession empties the transcript and broadcasts the empty snapshot", () => {
+    const { controller, ports } = setup({ state: "result", editing: false, hasTranscript: true });
+    controller.handleSttFinal({ id: 0, text: "Old." });
+    controller.dispatch({ type: "KEY_Y" }); // result + Y: clear, then record
+    expect(ports.broadcastTranscript).toHaveBeenLastCalledWith({ segments: [], partial: "" });
+    expect(controller.model.hasTranscript).toBe(false);
+    expect(ports.clearAudio).toHaveBeenCalled();
+  });
+
+  it("SYNC also resends the transcript", () => {
+    const { controller, ports } = recording();
+    controller.handleSttFinal({ id: 0, text: "Hello." });
+    (ports.broadcastTranscript as ReturnType<typeof vi.fn>).mockClear();
+    controller.handleAppEvent({ type: "SYNC" });
+    expect(ports.broadcastTranscript).toHaveBeenCalledWith({
+      segments: [{ id: 0, text: "Hello." }],
+      partial: "",
+    });
   });
 });

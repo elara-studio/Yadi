@@ -65,7 +65,6 @@ impl ChunkQueue {
         q.pop_front()
     }
 
-    #[cfg(test)]
     pub fn try_pop(&self) -> Option<Msg> {
         self.lock().pop_front()
     }

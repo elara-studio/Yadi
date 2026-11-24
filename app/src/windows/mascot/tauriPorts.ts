@@ -10,6 +10,9 @@ export const tauriPorts: ControllerPorts = {
   startAudio: () => invoke("audio_start"),
   stopAudio: () => invoke("audio_stop"),
   clearAudio: () => invoke("audio_clear"),
+  startStt: () => invoke("stt_start"),
+  stopStt: () => invoke("stt_stop"),
+  broadcastTranscript: (snapshot) => emit("app:transcript", snapshot),
   showView: (view) => emit("app:view", { view }),
   log: (message) => console.info(`[controller] ${message}`),
 };

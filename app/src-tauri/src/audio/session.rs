@@ -45,6 +45,9 @@ impl RecordingBuffer {
     }
 }
 
+/// About two minutes of 100 ms chunks (7.7 MB of f32 samples).
+pub const SUBSCRIBER_CAPACITY_CHUNKS: usize = 1_200;
+
 pub struct Session {
     source: Box<dyn AudioSource>,
     subscribers: Arc<Mutex<Vec<Arc<ChunkQueue>>>>,
@@ -130,9 +133,10 @@ impl Session {
     }
 
     /// A queue that receives every chunk from now on, then `End`.
-    #[allow(dead_code)] // used by speech recognition (Task 10)
     pub fn subscribe(&self) -> Arc<ChunkQueue> {
-        let q = Arc::new(ChunkQueue::new(50));
+        // Room for two minutes of audio: the speech model loads lazily on first use (several seconds),
+        // and nothing may be dropped from the start of the recording while it does.
+        let q = Arc::new(ChunkQueue::new(SUBSCRIBER_CAPACITY_CHUNKS));
         self.subscribers
             .lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -332,5 +336,26 @@ mod tests {
         b.append(&[1.0]);
         b.clear();
         assert_eq!(b.len(), 0);
+    }
+
+    #[test]
+    fn a_subscriber_queue_holds_two_minutes_of_audio_without_dropping_any() {
+        // The speech model loads lazily (several seconds); a subscriber must not lose the start.
+        let q = ChunkQueue::new(SUBSCRIBER_CAPACITY_CHUNKS);
+        for i in 0..SUBSCRIBER_CAPACITY_CHUNKS {
+            q.push(Msg::Chunk(vec![i as f32; 4]));
+        }
+        assert_eq!(q.dropped(), 0);
+        q.push(Msg::Chunk(vec![0.0; 4]));
+        assert_eq!(
+            q.dropped(),
+            1,
+            "only beyond two minutes does the oldest chunk go"
+        );
+        assert_eq!(
+            SUBSCRIBER_CAPACITY_CHUNKS * 100 / 1000,
+            120,
+            "about 120 s of 100 ms chunks"
+        );
     }
 }

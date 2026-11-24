@@ -447,8 +447,16 @@ mod tests {
         let id = std::env::var("YADI_REAL_MODEL").expect("set YADI_REAL_MODEL to a catalogue id");
         let catalog = Catalog::embedded().unwrap();
         let m = catalog.find(&id).expect("unknown id").clone();
-        let root = std::env::temp_dir().join(format!("yadi-real-{}-{id}", std::process::id()));
-        let _ = fs::remove_dir_all(&root);
+        // YADI_MODELS_DIR installs for real (kept) so integration tests can use the model;
+        // otherwise a throwaway temp folder is used and deleted.
+        let keep = std::env::var_os("YADI_MODELS_DIR");
+        let root = match &keep {
+            Some(dir) => PathBuf::from(dir),
+            None => std::env::temp_dir().join(format!("yadi-real-{}-{id}", std::process::id())),
+        };
+        if keep.is_none() {
+            let _ = fs::remove_dir_all(&root);
+        }
         let started = Instant::now();
         let mut last_pct = 0;
         install(
@@ -497,6 +505,8 @@ mod tests {
                 .exists(),
             "archive removed after install"
         );
-        let _ = fs::remove_dir_all(&root);
+        if keep.is_none() {
+            let _ = fs::remove_dir_all(&root);
+        }
     }
 }

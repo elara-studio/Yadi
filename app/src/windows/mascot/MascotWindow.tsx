@@ -17,6 +17,8 @@ export function MascotWindow() {
     const pending: Promise<UnlistenFn>[] = [
       listen("app:event", (e) => controller.handleAppEvent(e.payload)),
       listen("hotkey:summon", () => controller.dispatch({ type: "SUMMON" })),
+      listen("stt:partial", (e) => controller.handleSttPartial(e.payload)),
+      listen("stt:final", (e) => controller.handleSttFinal(e.payload)),
       listen("audio:error", (e) => controller.handleAudioError(e.payload)),
       listen("tray:toggle", () => controller.toggleChat()),
       listen("tray:about", () => controller.openAbout()),
