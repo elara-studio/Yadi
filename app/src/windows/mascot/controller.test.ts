@@ -483,3 +483,116 @@ describe("final pass in the processing flow", () => {
     expect(ports.showNotice).toHaveBeenCalledWith("Nothing heard");
   });
 });
+
+describe("transcript edits", () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  /** Idle, editing, with a two-segment transcript (recorded earlier). */
+  function editingSession() {
+    const t = setup({ state: "idle", editing: false, hasTranscript: false });
+    t.controller.dispatch({ type: "KEY_Y" }); // recording
+    t.controller.handleSttFinal({ id: 0, text: "Write a short emile." });
+    t.controller.handleSttFinal({ id: 1, text: "Thanks." });
+    t.controller.dispatch({ type: "KEY_ESC" }); // stop, back to idle, transcript kept
+    t.controller.handleAppEvent({ type: "EDIT_START" });
+    (t.ports.broadcastTranscript as ReturnType<typeof vi.fn>).mockClear();
+    (t.ports.clearAudio as ReturnType<typeof vi.fn>).mockClear();
+    return t;
+  }
+  const last = (ports: ControllerPorts) =>
+    (ports.broadcastTranscript as ReturnType<typeof vi.fn>).mock.lastCall?.[0];
+
+  it("replaces one word, broadcasts, and drops the old audio so a later pass cannot undo it", async () => {
+    const { controller, ports } = editingSession();
+    expect(controller.model.editing).toBe(true);
+    controller.handleAppEvent({
+      type: "TRANSCRIPT_REPLACE_WORD",
+      segmentId: 0,
+      wordIndex: 3,
+      text: "email.",
+    });
+    await flush();
+    expect(last(ports).segments[0]).toEqual({ id: 0, text: "Write a short email." });
+    expect(ports.clearAudio).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets the whole text", () => {
+    const { controller, ports } = editingSession();
+    controller.handleAppEvent({ type: "TRANSCRIPT_SET_TEXT", text: "Entirely different." });
+    expect(last(ports).segments).toEqual([{ id: 2, text: "Entirely different." }]);
+    expect(controller.model.hasTranscript).toBe(true);
+  });
+
+  it("emptying the text clears hasTranscript", () => {
+    const { controller } = editingSession();
+    controller.handleAppEvent({ type: "TRANSCRIPT_SET_TEXT", text: "   " });
+    expect(controller.model.hasTranscript).toBe(false);
+  });
+
+  it("ignores edits unless the app is editing", () => {
+    const { controller, ports } = editingSession();
+    controller.handleAppEvent({ type: "EDIT_END" });
+    controller.handleAppEvent({ type: "TRANSCRIPT_SET_TEXT", text: "sneaky" });
+    expect(ports.broadcastTranscript).not.toHaveBeenCalled();
+  });
+
+  it("ignores edits during recording and processing", () => {
+    for (const state of ["recording", "processing"] as const) {
+      const { controller, ports } = setup({ state, editing: true, hasTranscript: true });
+      controller.handleSttFinal({ id: 0, text: "Hello there." });
+      (ports.broadcastTranscript as ReturnType<typeof vi.fn>).mockClear();
+      controller.handleAppEvent({ type: "TRANSCRIPT_SET_TEXT", text: "nope" });
+      expect(ports.broadcastTranscript).not.toHaveBeenCalled();
+    }
+  });
+
+  it("a no-op edit changes nothing and keeps the audio", () => {
+    const { controller, ports } = editingSession();
+    controller.handleAppEvent({
+      type: "TRANSCRIPT_REPLACE_WORD",
+      segmentId: 0,
+      wordIndex: 3,
+      text: "emile.",
+    });
+    expect(ports.broadcastTranscript).not.toHaveBeenCalled();
+    expect(ports.clearAudio).not.toHaveBeenCalled();
+  });
+
+  it("ignores malformed edit payloads", () => {
+    const { controller, ports } = editingSession();
+    controller.handleAppEvent({ type: "TRANSCRIPT_SET_TEXT", text: 5 });
+    controller.handleAppEvent({
+      type: "TRANSCRIPT_REPLACE_WORD",
+      segmentId: "0",
+      wordIndex: 1,
+      text: "x",
+    });
+    controller.handleAppEvent({ type: "TRANSCRIPT_REPLACE_WORD", segmentId: 0 });
+    expect(ports.broadcastTranscript).not.toHaveBeenCalled();
+  });
+
+  it("after an edit, a new recording's final pass only touches the new text", async () => {
+    const { controller, ports } = editingSession();
+    controller.handleAppEvent({
+      type: "TRANSCRIPT_REPLACE_WORD",
+      segmentId: 0,
+      wordIndex: 3,
+      text: "email.",
+    });
+    controller.handleAppEvent({ type: "EDIT_END" });
+    controller.dispatch({ type: "KEY_Y" }); // record more
+    controller.handleSttFinal({ id: 0, text: "live more" });
+    (ports.runFinalPass as ReturnType<typeof vi.fn>).mockResolvedValue({
+      text: "Polished more.",
+      notice: null,
+    });
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    expect(last(ports).segments.map((s: { text: string }) => s.text)).toEqual([
+      "Write a short email.",
+      "Thanks.",
+      "Polished more.",
+    ]);
+  });
+});

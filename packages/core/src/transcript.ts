@@ -20,6 +20,11 @@ export interface TranscriptSnapshot {
   partial: string;
 }
 
+/** Splits text into words the same way everywhere (the view's word spans and `replaceWord`). */
+export function splitWords(text: string): string[] {
+  return text.split(/\s+/).filter((w) => w !== "");
+}
+
 export class Transcript {
   private segments: Segment[] = [];
   private partial = "";
@@ -57,6 +62,35 @@ export class Transcript {
     this.segments = this.segments.slice(0, this.audioBase);
     this.partial = "";
     if (text.trim() !== "") this.segments.push({ id: Math.max(id, this.audioBase), text });
+  }
+
+  /**
+   * The user edited the whole transcript: everything becomes one segment with the new text.
+   * Returns false (and changes nothing) when the text is unchanged.
+   */
+  setText(text: string): boolean {
+    const next = text.trim();
+    if (next === this.text()) return false;
+    const id = this.nextId();
+    this.segments = next === "" ? [] : [{ id, text: next }];
+    this.partial = "";
+    return true;
+  }
+
+  /**
+   * The user fixed one word. `replacement` may be several words. Returns false (and changes
+   * nothing) for an unknown segment or word, an empty replacement, or no actual change.
+   */
+  replaceWord(segmentId: number, wordIndex: number, replacement: string): boolean {
+    const i = this.segments.findIndex((s) => s.id === segmentId);
+    const fixed = replacement.trim();
+    const segment = this.segments[i];
+    if (!segment || fixed === "") return false;
+    const words = splitWords(segment.text);
+    if (wordIndex < 0 || wordIndex >= words.length || words[wordIndex] === fixed) return false;
+    words[wordIndex] = fixed;
+    this.segments[i] = { id: segment.id, text: words.join(" ") };
+    return true;
   }
 
   /**

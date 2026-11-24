@@ -30,6 +30,11 @@ export interface ProgressPayload {
   total: number;
 }
 
+/** Edits the chat window sends to the Controller (the transcript lives here). */
+export type TranscriptEditEvent =
+  | { type: "TRANSCRIPT_SET_TEXT"; text: string }
+  | { type: "TRANSCRIPT_REPLACE_WORD"; segmentId: number; wordIndex: number; text: string };
+
 export type ChatView = "chat" | "about" | "settings";
 
 export interface ControllerPorts {
@@ -168,6 +173,22 @@ export class Controller {
       void this.ports.broadcastTranscript(this.transcript.snapshot());
       return;
     }
+    if (type === "TRANSCRIPT_SET_TEXT") {
+      const { text } = payload as { text?: unknown };
+      if (typeof text === "string") this.applyEdit(() => this.transcript.setText(text));
+      return;
+    }
+    if (type === "TRANSCRIPT_REPLACE_WORD") {
+      const { segmentId, wordIndex, text } = payload as Record<string, unknown>;
+      if (
+        typeof segmentId === "number" &&
+        typeof wordIndex === "number" &&
+        typeof text === "string"
+      ) {
+        this.applyEdit(() => this.transcript.replaceWord(segmentId, wordIndex, text));
+      }
+      return;
+    }
     if (!EVENT_TYPES.has(type)) {
       this.ports.log(`ignored unknown app:event "${type}"`);
       return;
@@ -258,6 +279,21 @@ export class Controller {
       void this.ports.broadcastProgress(null);
       this.ports.log("processing pipeline is not implemented yet (Task 19)");
     })();
+  }
+
+  /**
+   * Applies a user edit to the transcript. Only allowed while editing in idle or result (the
+   * state machine's rule), so nothing can change the text mid-recording or mid-processing.
+   * The recording's audio no longer matches the edited text, so it is dropped: a later final
+   * pass must never overwrite the edit.
+   */
+  private applyEdit(change: () => boolean): void {
+    const { state, editing } = this.current;
+    if (!editing || (state !== "idle" && state !== "result")) return;
+    if (!change()) return;
+    this.transcript.markAudioFreed();
+    void this.guard(this.ports.clearAudio());
+    this.transcriptChanged();
   }
 
   /** `stt:final-progress {done, total}` from Rust while the final pass runs. */

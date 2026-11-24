@@ -3,11 +3,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import type { AppEvent, TranscriptSnapshot } from "@yadi/core";
 import { AboutView } from "../../about/AboutView";
+import { TranscriptView } from "../../components/TranscriptView";
 import { SettingsView } from "../../settings/SettingsView";
-import type { AppStatePayload, ChatView, ProgressPayload } from "../mascot/controller";
+import type {
+  AppStatePayload,
+  ChatView,
+  ProgressPayload,
+  TranscriptEditEvent,
+} from "../mascot/controller";
 import { useKeyboardControls } from "./useKeyboardControls";
 
-const sendToController = (event: AppEvent) => void emit("app:event", event);
+const sendToController = (event: AppEvent | TranscriptEditEvent) => void emit("app:event", event);
 
 /** Mirrors `Notice` in src-tauri/src/hotkey/mod.rs. */
 interface Notice {
@@ -106,19 +112,13 @@ export function ChatWindow() {
                 </li>
               </ul>
             )}
-            <div className="chat-body" data-testid="transcript">
-              {transcript.segments.length === 0 && transcript.partial === "" ? (
-                <span className="transcript-empty">Press Y and start talking.</span>
-              ) : (
-                <>
-                  {transcript.segments.map((s) => (
-                    <span key={s.id} className="transcript-final">
-                      {s.text}{" "}
-                    </span>
-                  ))}
-                  <span className="transcript-partial">{transcript.partial}</span>
-                </>
-              )}
+            <div className="chat-body">
+              <TranscriptView
+                snapshot={transcript}
+                state={app.state}
+                editing={app.editing}
+                send={sendToController}
+              />
             </div>
             <div className="chat-hint">{KEY_HINT}</div>
           </>

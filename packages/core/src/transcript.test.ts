@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Transcript } from "./transcript";
+import { Transcript, splitWords } from "./transcript";
 
 describe("Transcript", () => {
   it("starts empty", () => {
@@ -134,6 +134,63 @@ describe("Transcript", () => {
       expect(t.snapshot().segments).toEqual([{ id: 0, text: "B." }]);
       t.replaceRecordedAudio("B polished.");
       expect(t.snapshot().segments.map((s) => s.text)).toEqual(["B polished."]);
+    });
+  });
+
+  describe("editing", () => {
+    const base = () => {
+      const t = new Transcript();
+      t.beginRecording();
+      t.applyFinal(0, "Write a short emile to my manager.");
+      t.applyFinal(1, "Thanks.");
+      return t;
+    };
+
+    it("splitWords splits on any whitespace and ignores empty pieces", () => {
+      expect(splitWords("  a  b\tc\nd ")).toEqual(["a", "b", "c", "d"]);
+      expect(splitWords("")).toEqual([]);
+    });
+
+    it("replaceWord changes only that word", () => {
+      const t = base();
+      expect(t.replaceWord(0, 3, "email")).toBe(true);
+      expect(t.snapshot().segments).toEqual([
+        { id: 0, text: "Write a short email to my manager." },
+        { id: 1, text: "Thanks." },
+      ]);
+    });
+
+    it("replaceWord accepts multi-word replacement text", () => {
+      const t = base();
+      t.replaceWord(1, 0, "Many thanks");
+      expect(t.snapshot().segments[1]?.text).toBe("Many thanks");
+      t.replaceWord(0, 3, "e mail");
+      expect(t.snapshot().segments[0]?.text).toBe("Write a short e mail to my manager.");
+    });
+
+    it("replaceWord ignores unknown segments, bad indexes, empty or unchanged text", () => {
+      const t = base();
+      const before = JSON.stringify(t.snapshot());
+      expect(t.replaceWord(9, 0, "x")).toBe(false);
+      expect(t.replaceWord(0, 99, "x")).toBe(false);
+      expect(t.replaceWord(0, -1, "x")).toBe(false);
+      expect(t.replaceWord(0, 3, "   ")).toBe(false);
+      expect(t.replaceWord(0, 3, "emile")).toBe(false);
+      expect(JSON.stringify(t.snapshot())).toBe(before);
+    });
+
+    it("setText replaces everything with one segment", () => {
+      const t = base();
+      expect(t.setText("  Totally new text.  ")).toBe(true);
+      expect(t.snapshot().segments).toEqual([{ id: 2, text: "Totally new text." }]);
+      expect(t.text()).toBe("Totally new text.");
+    });
+
+    it("setText with the same text changes nothing, and empty text clears", () => {
+      const t = base();
+      expect(t.setText(t.text())).toBe(false);
+      expect(t.setText("   ")).toBe(true);
+      expect(t.hasContent()).toBe(false);
     });
   });
 });
