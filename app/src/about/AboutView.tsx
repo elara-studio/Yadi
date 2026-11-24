@@ -20,8 +20,15 @@ export function AboutView({ onBack }: { onBack: () => void }) {
       setMissing(true);
       return;
     }
-    void load().then(setData);
-    void getVersion().then(setVersion, () => setVersion("unknown"));
+    let cancelled = false;
+    void load().then((d) => !cancelled && setData(d));
+    void getVersion().then(
+      (v) => !cancelled && setVersion(v),
+      () => !cancelled && setVersion("unknown"),
+    );
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (missing) {

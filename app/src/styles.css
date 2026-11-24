@@ -303,3 +303,10 @@ body,
   white-space: pre-wrap;
   font-size: 11px;
 }
+
+.chat-hint {
+  padding: 8px 14px;
+  border-top: 1px solid rgb(0 0 0 / 8%);
+  font-size: 12px;
+  opacity: 0.65;
+}

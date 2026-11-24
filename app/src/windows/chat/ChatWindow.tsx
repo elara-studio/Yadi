@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
+import type { AppEvent } from "@yadi/core";
 import { AboutView } from "../../about/AboutView";
 import type { AppStatePayload, ChatView } from "../mascot/controller";
+import { useKeyboardControls } from "./useKeyboardControls";
+
+const sendToController = (event: AppEvent) => void emit("app:event", event);
+
+export const KEY_HINT = "Y = next step · Esc = stop / hide";
 
 /** Placeholder chat overlay. Real content arrives in Tasks 05, 12, 19. */
 export function ChatWindow() {
   const [app, setApp] = useState<AppStatePayload>({ state: "minimized", editing: false });
   const [view, setView] = useState<ChatView>("chat");
+
+  useKeyboardControls(sendToController);
 
   useEffect(() => {
     const pending = [
@@ -43,6 +51,7 @@ export function ChatWindow() {
               </button>
             </div>
             <div className="chat-body">Chat overlay placeholder.</div>
+            <div className="chat-hint">{KEY_HINT}</div>
           </>
         )}
       </div>
