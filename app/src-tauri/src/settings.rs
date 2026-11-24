@@ -42,10 +42,30 @@ impl Default for Summon {
     }
 }
 
+/// The second, more accurate transcription pass after recording (PLAN Task 11).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct FinalPassSettings {
+    pub enabled: bool,
+    /// Give up and keep the live transcript after this many seconds.
+    pub timeout_seconds: u32,
+}
+
+impl Default for FinalPassSettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            timeout_seconds: 20,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub summon: Summon,
+    #[serde(rename = "finalPass")]
+    pub final_pass: FinalPassSettings,
 }
 
 impl Settings {
@@ -53,6 +73,7 @@ impl Settings {
     pub fn normalized(mut self) -> Self {
         self.summon.threshold_ms = longpress::clamp_threshold(self.summon.threshold_ms);
         let trimmed = self.summon.chord.trim();
+        self.final_pass.timeout_seconds = self.final_pass.timeout_seconds.clamp(5, 120);
         self.summon.chord = if trimmed.is_empty() {
             DEFAULT_CHORD.to_string()
         } else {
@@ -141,6 +162,28 @@ mod tests {
         assert_eq!(s.summon.mode, SummonMode::LongpressY);
         assert_eq!(s.summon.threshold_ms, 400);
         assert_eq!(s.summon.chord, "CommandOrControl+Shift+Y");
+    }
+
+    #[test]
+    fn final_pass_defaults_to_enabled_with_a_20_second_timeout() {
+        let s = Settings::default();
+        assert!(s.final_pass.enabled);
+        assert_eq!(s.final_pass.timeout_seconds, 20);
+        let v = serde_json::to_value(&s).unwrap();
+        assert_eq!(v["finalPass"]["enabled"], true);
+        assert_eq!(v["finalPass"]["timeout_seconds"], 20);
+        // old settings files without the field still load
+        let old: Settings = serde_json::from_str(r#"{"summon":{"mode":"chord"}}"#).unwrap();
+        assert!(old.final_pass.enabled);
+    }
+
+    #[test]
+    fn final_pass_timeout_is_clamped() {
+        let mut s = Settings::default();
+        s.final_pass.timeout_seconds = 0;
+        assert_eq!(s.clone().normalized().final_pass.timeout_seconds, 5);
+        s.final_pass.timeout_seconds = 9_999;
+        assert_eq!(s.normalized().final_pass.timeout_seconds, 120);
     }
 
     #[test]

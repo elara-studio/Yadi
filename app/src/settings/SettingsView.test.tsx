@@ -9,6 +9,7 @@ const { SettingsView } = await import("./SettingsView");
 
 const base: Settings = {
   summon: { mode: "longpress-y", threshold_ms: 400, chord: "CommandOrControl+Shift+Y" },
+  finalPass: { enabled: true, timeout_seconds: 20 },
 };
 
 describe("SettingsView", () => {
@@ -36,7 +37,10 @@ describe("SettingsView", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(invoke).toHaveBeenCalledWith("set_settings", {
-        settings: { summon: { mode: "chord", threshold_ms: 400, chord: "Alt+Space" } },
+        settings: {
+          summon: { mode: "chord", threshold_ms: 400, chord: "Alt+Space" },
+          finalPass: { enabled: true, timeout_seconds: 20 },
+        },
       }),
     );
     expect(await screen.findByText("Saved.")).toBeInTheDocument();
@@ -61,5 +65,19 @@ describe("SettingsView", () => {
     render(<SettingsView onBack={onBack} />);
     await user.click(await screen.findByLabelText("Back to chat"));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it("the final-pass checkbox is on by default and can be switched off and saved", async () => {
+    const user = userEvent.setup();
+    render(<SettingsView onBack={() => {}} />);
+    const box = await screen.findByLabelText(/Polish the transcript after recording/);
+    expect(box).toBeChecked();
+    await user.click(box);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("set_settings", {
+        settings: expect.objectContaining({ finalPass: { enabled: false, timeout_seconds: 20 } }),
+      }),
+    );
   });
 });

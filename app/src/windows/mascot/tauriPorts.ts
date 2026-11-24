@@ -13,6 +13,9 @@ export const tauriPorts: ControllerPorts = {
   startStt: () => invoke("stt_start"),
   stopStt: () => invoke("stt_stop"),
   broadcastTranscript: (snapshot) => emit("app:transcript", snapshot),
+  runFinalPass: () => invoke("final_pass_run"),
+  showNotice: (message) => emit("app:notice", { message, action: null }),
+  broadcastProgress: (progress) => emit("app:progress", progress),
   showView: (view) => emit("app:view", { view }),
   log: (message) => console.info(`[controller] ${message}`),
 };

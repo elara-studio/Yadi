@@ -10,6 +10,9 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     showView: vi.fn((v) => void calls.push(`view:${v}`)),
     startAudio: vi.fn(),
     startStt: vi.fn(),
+    runFinalPass: vi.fn(async () => ({ text: null, notice: null })),
+    showNotice: vi.fn(),
+    broadcastProgress: vi.fn(),
     stopStt: vi.fn(),
     broadcastTranscript: vi.fn(),
     stopAudio: vi.fn(),
@@ -52,7 +55,7 @@ describe("Controller", () => {
     await controller.whenSettled();
     expect(ports.startAudio).toHaveBeenCalledTimes(1);
     expect(ports.stopAudio).toHaveBeenCalledTimes(1); // Y with a transcript stops recording
-    expect(ports.log).toHaveBeenCalledWith("effect (stub): startProcessing");
+    expect(ports.runFinalPass).toHaveBeenCalledTimes(1);
   });
 
   it("toggleChat opens when minimized", () => {
@@ -180,7 +183,7 @@ describe("audio wiring", () => {
       message: "The microphone was disconnected.",
     });
     expect(controller.model.state).toBe("idle");
-    expect(ports.log).toHaveBeenCalledWith("effect (stub): notify");
+    expect(ports.showNotice).toHaveBeenCalledWith("The microphone was disconnected.");
   });
 
   it("a failing stopAudio is logged, not thrown", async () => {
@@ -320,5 +323,163 @@ describe("speech recognition wiring", () => {
       segments: [{ id: 0, text: "Hello." }],
       partial: "",
     });
+  });
+});
+
+describe("final pass in the processing flow", () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  /** A recording with live text, ready for Y to start processing. */
+  function recordedSession() {
+    const t = setup({ state: "recording", editing: false, hasTranscript: false });
+    t.controller.handleSttFinal({ id: 0, text: "Right a short emile." });
+    return t;
+  }
+  const finalPass = (ports: ControllerPorts) => ports.runFinalPass as ReturnType<typeof vi.fn>;
+  const lastTranscript = (ports: ControllerPorts) =>
+    (ports.broadcastTranscript as ReturnType<typeof vi.fn>).mock.lastCall?.[0];
+
+  it("runs after the recording has settled and replaces the live transcript in one step", async () => {
+    const { controller, ports } = recordedSession();
+    finalPass(ports).mockResolvedValue({ text: "Write a short email.", notice: null });
+    controller.dispatch({ type: "KEY_Y" });
+    expect(controller.model.state).toBe("processing");
+    await controller.whenSettled();
+    await flush();
+    expect(ports.stopAudio).toHaveBeenCalled();
+    expect(finalPass(ports)).toHaveBeenCalledTimes(1);
+    expect(lastTranscript(ports)).toEqual({
+      segments: [{ id: 1, text: "Write a short email." }],
+      partial: "",
+    });
+  });
+
+  it("the final pass waits for stopAudio and stopStt to finish", async () => {
+    const { controller, ports } = recordedSession();
+    const order: string[] = [];
+    (ports.stopAudio as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      await flush();
+      order.push("stopAudio");
+    });
+    (ports.stopStt as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      await flush();
+      order.push("stopStt");
+    });
+    finalPass(ports).mockImplementation(async () => {
+      order.push("finalPass");
+      return { text: null, notice: null };
+    });
+    controller.dispatch({ type: "KEY_Y" });
+    await flush();
+    await flush();
+    await flush();
+    expect(order).toEqual(["stopAudio", "stopStt", "finalPass"]);
+  });
+
+  it("shows the Transcribing stage while it runs and clears it afterwards", async () => {
+    const { controller, ports } = recordedSession();
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    const calls = (ports.broadcastProgress as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+    expect(calls[0]).toEqual({ stage: "transcribing", done: 0, total: 0 });
+    expect(calls[calls.length - 1]).toBeNull();
+  });
+
+  it("forwards chunk progress only while processing", async () => {
+    const { controller, ports } = recordedSession();
+    controller.handleFinalProgress({ done: 1, total: 3 }); // still recording: ignored
+    expect(ports.broadcastProgress).not.toHaveBeenCalled();
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    controller.handleFinalProgress({ done: 1, total: 3 });
+    expect(ports.broadcastProgress).toHaveBeenCalledWith({
+      stage: "transcribing",
+      done: 1,
+      total: 3,
+    });
+    controller.handleFinalProgress({ done: "x" });
+    controller.handleFinalProgress(null);
+  });
+
+  it("a failed or skipped pass keeps the live transcript and shows the notice", async () => {
+    const { controller, ports } = recordedSession();
+    finalPass(ports).mockResolvedValue({ text: null, notice: "Polishing took too long." });
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    expect(lastTranscript(ports)).toEqual({
+      segments: [{ id: 0, text: "Right a short emile." }],
+      partial: "",
+    });
+    expect(ports.showNotice).toHaveBeenCalledWith("Polishing took too long.");
+  });
+
+  it("a thrown error from the command is treated as a failed pass", async () => {
+    const { controller, ports } = recordedSession();
+    finalPass(ports).mockRejectedValue("ipc broke");
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    expect(ports.showNotice).toHaveBeenCalledWith(
+      "Polishing the transcript failed, so the live transcript was kept.",
+    );
+    expect(lastTranscript(ports).segments[0].text).toBe("Right a short emile.");
+  });
+
+  it("Esc before the pass starts cancels it and keeps the audio for the next recording", async () => {
+    const { controller, ports } = recordedSession();
+    controller.dispatch({ type: "KEY_Y" }); // processing: waits for the stop sequence
+    controller.dispatch({ type: "KEY_ESC" }); // cancel immediately
+    await controller.whenSettled();
+    await flush();
+    expect(finalPass(ports)).not.toHaveBeenCalled();
+    expect(controller.model.state).toBe("idle");
+  });
+
+  it("a result that arrives after cancelling is ignored", async () => {
+    const { controller, ports } = recordedSession();
+    let release: (v: { text: string; notice: null }) => void = () => {};
+    finalPass(ports).mockReturnValue(new Promise((r) => (release = r)));
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    controller.dispatch({ type: "KEY_ESC" }); // cancel while Whisper is still running
+    release({ text: "Late text.", notice: null });
+    await flush();
+    expect(lastTranscript(ports).segments.map((s: { text: string }) => s.text)).toEqual([
+      "Right a short emile.",
+    ]);
+    expect(controller.model.state).toBe("idle");
+  });
+
+  it("after a cancelled pass, the next recording's pass only replaces its own text", async () => {
+    const { controller, ports } = recordedSession();
+    finalPass(ports).mockResolvedValueOnce({ text: "Polished first.", notice: null });
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    controller.dispatch({ type: "KEY_ESC" }); // pipeline not done yet (Task 19): cancel, back to idle
+    controller.dispatch({ type: "KEY_Y" }); // record again
+    controller.handleSttFinal({ id: 0, text: "live second" });
+    finalPass(ports).mockResolvedValueOnce({ text: "Polished second.", notice: null });
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    expect(lastTranscript(ports).segments.map((s: { text: string }) => s.text)).toEqual([
+      "Polished first.",
+      "Polished second.",
+    ]);
+  });
+
+  it("notify effects reach the chat window as notices", () => {
+    const { controller, ports } = setup({
+      state: "recording",
+      editing: false,
+      hasTranscript: false,
+    });
+    controller.dispatch({ type: "KEY_Y" }); // nothing heard
+    expect(ports.showNotice).toHaveBeenCalledWith("Nothing heard");
   });
 });

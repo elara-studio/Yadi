@@ -376,3 +376,15 @@ body,
 .transcript-empty {
   opacity: 0.5;
 }
+
+.stages {
+  margin: 0;
+  padding: 8px 14px;
+  list-style: none;
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+  font-size: 12px;
+}
+.stage-active {
+  color: var(--yadi-orange);
+  font-weight: 600;
+}

@@ -19,6 +19,7 @@ export function MascotWindow() {
       listen("hotkey:summon", () => controller.dispatch({ type: "SUMMON" })),
       listen("stt:partial", (e) => controller.handleSttPartial(e.payload)),
       listen("stt:final", (e) => controller.handleSttFinal(e.payload)),
+      listen("stt:final-progress", (e) => controller.handleFinalProgress(e.payload)),
       listen("audio:error", (e) => controller.handleAudioError(e.payload)),
       listen("tray:toggle", () => controller.toggleChat()),
       listen("tray:about", () => controller.openAbout()),

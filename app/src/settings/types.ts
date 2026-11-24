@@ -7,6 +7,10 @@ export interface Settings {
     threshold_ms: number;
     chord: string;
   };
+  finalPass: {
+    enabled: boolean;
+    timeout_seconds: number;
+  };
 }
 
 export const MIN_THRESHOLD_MS = 250;

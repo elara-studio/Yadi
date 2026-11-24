@@ -10,8 +10,9 @@ use std::time::{Duration, Instant};
 
 use serde_json::json;
 use sherpa_onnx::OnlineRecognizer;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
+use super::final_pass::{MODEL_PREFERENCE, OfflineEngine, Outcome, WhisperEngine, finalize};
 use super::stream::{
     Options, PREFERRED_MODEL, SMALL_MODEL, SherpaDecoder, SttEvent, Transcriber, load_recognizer,
 };
@@ -19,6 +20,7 @@ use crate::audio::Msg;
 use crate::audio::commands::AudioState;
 use crate::audio::queue::ChunkQueue;
 use crate::models::{installed_dir, models_dir};
+use crate::settings::SettingsState;
 
 #[derive(Default)]
 pub struct SttState {
@@ -165,4 +167,65 @@ pub async fn stt_stop(stt: State<'_, SttState>) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+// ---- final pass ------------------------------------------------------------------------------
+
+#[derive(Default)]
+pub struct FinalPassState {
+    engine: Mutex<Option<Arc<WhisperEngine>>>,
+}
+
+/// The preferred Whisper model that is installed (base.en by default).
+fn installed_final_model(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let root = models_dir(app)?;
+    MODEL_PREFERENCE
+        .iter()
+        .find_map(|id| installed_dir(&root, id))
+        .ok_or_else(|| "no Whisper model is installed".to_string())
+}
+
+/// Re-transcribes the whole recording with Whisper. Always succeeds from the caller's point of
+/// view: on any problem `text` is null and the live transcript is kept. The audio buffer is
+/// emptied either way. Emits `stt:final-progress {done, total}`.
+#[tauri::command]
+pub async fn final_pass_run(
+    app: AppHandle,
+    audio: State<'_, AudioState>,
+    settings: State<'_, SettingsState>,
+) -> Result<Outcome, String> {
+    let (enabled, timeout) = {
+        let s = settings.0.lock().unwrap_or_else(|e| e.into_inner());
+        (
+            s.final_pass.enabled,
+            Duration::from_secs(u64::from(s.final_pass.timeout_seconds)),
+        )
+    };
+    let buffer = audio.buffer.clone();
+    let worker_app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let load = || -> Result<Arc<dyn OfflineEngine + Send + Sync>, String> {
+            let state = worker_app.state::<FinalPassState>();
+            if let Some(e) = state
+                .engine
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .clone()
+            {
+                return Ok(e);
+            }
+            let dir = installed_final_model(&worker_app)?;
+            let engine = Arc::new(WhisperEngine::load(&dir)?);
+            *state.engine.lock().unwrap_or_else(|e| e.into_inner()) = Some(engine.clone());
+            Ok(engine)
+        };
+        finalize(&buffer, enabled, timeout, &load, &mut |done, total| {
+            let _ = worker_app.emit(
+                "stt:final-progress",
+                json!({ "done": done, "total": total }),
+            );
+        })
+    })
+    .await
+    .map_err(|e| format!("final pass task failed: {e}"))
 }

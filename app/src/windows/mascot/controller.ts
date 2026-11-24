@@ -17,6 +17,19 @@ export interface AppStatePayload {
 }
 
 /** Everything the Controller needs from the outside world, injected so it is testable. */
+/** What `final_pass_run` returns: `text` replaces the live transcript when present. */
+export interface FinalPassOutcome {
+  text: string | null;
+  notice: string | null;
+}
+
+/** Payload of `app:progress`. `done`/`total` count chunks of the stage; 0/0 = not known yet. */
+export interface ProgressPayload {
+  stage: "transcribing";
+  done: number;
+  total: number;
+}
+
 export type ChatView = "chat" | "about" | "settings";
 
 export interface ControllerPorts {
@@ -34,6 +47,12 @@ export interface ControllerPorts {
   startStt(): void | Promise<void>;
   /** Flushes and stops speech recognition (the last words arrive as a final segment). */
   stopStt(): void | Promise<void>;
+  /** Re-transcribes the whole recording with the accurate model (Rust `final_pass_run`). */
+  runFinalPass(): Promise<FinalPassOutcome> | FinalPassOutcome;
+  /** Shows a short message in the chat window (`app:notice`). */
+  showNotice(message: string): void | Promise<void>;
+  /** Tells the chat window which processing stage is running (`app:progress`); null = none. */
+  broadcastProgress(progress: ProgressPayload | null): void | Promise<void>;
   /** Sends the transcript to the chat window (`app:transcript`). */
   broadcastTranscript(snapshot: TranscriptSnapshot): void | Promise<void>;
   /** Tells the chat window which screen to show (`app:view`). */
@@ -104,6 +123,8 @@ export class Controller {
   private readonly transcript = new Transcript();
   /** Resolves when the most recent recording has fully stopped and its last words have arrived. */
   private settled: Promise<void> = Promise.resolve();
+  /** Bumped when processing starts and when it is cancelled, so late results can be ignored. */
+  private processingRun = 0;
 
   /**
    * Starts in `minimized` (mascot visible, chat hidden). Task 15 will start in `setup` until
@@ -201,6 +222,53 @@ export class Controller {
     return this.settled;
   }
 
+  /**
+   * Processing, stage 1: wait for the recording to settle, then re-transcribe it with the accurate
+   * model and swap the transcript in one step. If that fails or is disabled the live transcript
+   * stays. The prompt pipeline (Task 19) continues from here.
+   */
+  private startProcessing(): void {
+    const run = ++this.processingRun;
+    void (async () => {
+      await this.settled;
+      if (run !== this.processingRun) return; // cancelled before the pass began: audio is kept
+      const coveredSegments = this.transcript.segmentCount();
+      void this.ports.broadcastProgress({ stage: "transcribing", done: 0, total: 0 });
+      let outcome: FinalPassOutcome;
+      try {
+        outcome = await this.ports.runFinalPass();
+      } catch {
+        outcome = {
+          text: null,
+          notice: "Polishing the transcript failed, so the live transcript was kept.",
+        };
+      }
+      // Rust empties the recording buffer whatever happened, so that audio is gone either way.
+      if (outcome.text !== null && run === this.processingRun) {
+        this.transcript.replaceRecordedAudio(outcome.text);
+      }
+      this.transcript.markAudioFreed(
+        outcome.text !== null && run === this.processingRun
+          ? this.transcript.segmentCount()
+          : coveredSegments,
+      );
+      void this.ports.broadcastTranscript(this.transcript.snapshot());
+      if (outcome.notice) void this.ports.showNotice(outcome.notice);
+      if (run !== this.processingRun) return; // cancelled while the pass ran
+      void this.ports.broadcastProgress(null);
+      this.ports.log("processing pipeline is not implemented yet (Task 19)");
+    })();
+  }
+
+  /** `stt:final-progress {done, total}` from Rust while the final pass runs. */
+  handleFinalProgress(payload: unknown): void {
+    if (typeof payload !== "object" || payload === null) return;
+    const { done, total } = payload as { done?: unknown; total?: unknown };
+    if (typeof done !== "number" || typeof total !== "number") return;
+    if (this.current.state !== "processing") return;
+    void this.ports.broadcastProgress({ stage: "transcribing", done, total });
+  }
+
   /** `stt:partial {text}` from Rust. */
   handleSttPartial(payload: unknown): void {
     const text = textOf(payload);
@@ -257,7 +325,18 @@ export class Controller {
         void this.ports.focusChat();
         break;
       case "startRecording":
+        this.transcript.beginRecording();
         this.startRecording();
+        break;
+      case "startProcessing":
+        this.startProcessing();
+        break;
+      case "cancelProcessing":
+        this.processingRun++;
+        void this.ports.broadcastProgress(null);
+        break;
+      case "notify":
+        void this.ports.showNotice(effect.message);
         break;
       case "stopRecording":
         this.stopRecording();
@@ -267,10 +346,6 @@ export class Controller {
         void this.ports.broadcastTranscript(this.transcript.snapshot());
         void this.guard(this.ports.clearAudio());
         break;
-      default:
-        // startProcessing, cancelProcessing, notify: stubs until later tasks.
-        // Log the effect name only, never its content.
-        this.ports.log(`effect (stub): ${effect.type}`);
     }
   }
 }

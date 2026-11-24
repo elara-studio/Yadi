@@ -113,4 +113,29 @@ describe("ChatWindow", () => {
     expect(box).toHaveTextContent("Write a short email. Thanks a");
     expect(screen.queryByText("Press Y and start talking.")).not.toBeInTheDocument();
   });
+
+  it("lists Transcribing as the first stage while processing and shows chunk progress", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    expect(screen.queryByLabelText("Progress")).not.toBeInTheDocument();
+    act(() => handlers.get("app:state")?.({ payload: { state: "processing", editing: false } }));
+    expect(screen.getByLabelText("Progress")).toHaveTextContent("Transcribing…");
+    act(() =>
+      handlers.get("app:progress")?.({ payload: { stage: "transcribing", done: 1, total: 3 } }),
+    );
+    expect(screen.getByLabelText("Progress")).toHaveTextContent("Transcribing 1/3");
+    act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+    expect(screen.queryByLabelText("Progress")).not.toBeInTheDocument();
+  });
+
+  it("shows runtime notices sent as app:notice", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    act(() =>
+      handlers.get("app:notice")?.({
+        payload: { message: "Nothing heard", action: null },
+      }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nothing heard");
+  });
 });

@@ -25,7 +25,12 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
 
   const update = (patch: Partial<Settings["summon"]>) => {
     setSaved(false);
-    setSettings({ summon: { ...settings.summon, ...patch } });
+    setSettings({ ...settings, summon: { ...settings.summon, ...patch } });
+  };
+
+  const setFinalPass = (enabled: boolean) => {
+    setSaved(false);
+    setSettings({ ...settings, finalPass: { ...settings.finalPass, enabled } });
   };
 
   const save = async () => {
@@ -92,6 +97,15 @@ export function SettingsView({ onBack }: { onBack: () => void }) {
           />
         </label>
       )}
+
+      <label className="settings-row">
+        <input
+          type="checkbox"
+          checked={settings.finalPass.enabled}
+          onChange={(e) => setFinalPass(e.target.checked)}
+        />
+        Polish the transcript after recording (more accurate, a few seconds slower)
+      </label>
 
       {error && (
         <p className="settings-error" role="alert">
