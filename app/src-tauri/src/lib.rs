@@ -1,3 +1,4 @@
+mod audio;
 mod hotkey;
 mod settings;
 mod windows;
@@ -16,6 +17,7 @@ pub fn run() {
         )
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .manage(audio::commands::AudioState::default())
         .invoke_handler(tauri::generate_handler![
             windows::show_chat,
             windows::hide_chat,
@@ -24,6 +26,9 @@ pub fn run() {
             windows::show_context_menu,
             settings::get_settings,
             settings::set_settings,
+            audio::commands::audio_start,
+            audio::commands::audio_stop,
+            audio::commands::audio_clear,
             hotkey::get_notice,
             hotkey::open_permission_settings,
         ])

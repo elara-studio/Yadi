@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { Controller, mascotStateFor, type ControllerPorts } from "./controller";
+import { Controller, errorMessage, mascotStateFor, type ControllerPorts } from "./controller";
 
 function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
   const calls: string[] = [];
@@ -8,6 +8,9 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     hideChat: vi.fn(() => void calls.push("hideChat")),
     focusChat: vi.fn(() => void calls.push("focusChat")),
     showView: vi.fn((v) => void calls.push(`view:${v}`)),
+    startAudio: vi.fn(),
+    stopAudio: vi.fn(),
+    clearAudio: vi.fn(),
     broadcast: vi.fn((p) => void calls.push(`broadcast:${p.state}:${p.editing}`)),
     log: vi.fn(),
   };
@@ -33,7 +36,7 @@ describe("Controller", () => {
     expect(ports.focusChat).toHaveBeenCalledTimes(2);
   });
 
-  it("walks idle -> recording -> processing -> result with Y and logs stub effects", () => {
+  it("walks idle -> recording -> processing -> result with Y, driving the microphone", () => {
     const { controller, ports } = setup();
     controller.dispatch({ type: "SUMMON" });
     controller.dispatch({ type: "KEY_Y" });
@@ -43,7 +46,8 @@ describe("Controller", () => {
     expect(controller.model.state).toBe("processing");
     controller.dispatch({ type: "PROCESS_DONE" });
     expect(controller.model.state).toBe("result");
-    expect(ports.log).toHaveBeenCalledWith("effect (stub): startRecording");
+    expect(ports.startAudio).toHaveBeenCalledTimes(1);
+    expect(ports.stopAudio).toHaveBeenCalledTimes(1); // Y with a transcript stops recording
     expect(ports.log).toHaveBeenCalledWith("effect (stub): startProcessing");
   });
 
@@ -62,7 +66,7 @@ describe("Controller", () => {
     controller.toggleChat();
     expect(controller.model.state).toBe("minimized");
     expect(ports.hideChat).toHaveBeenCalledTimes(1);
-    expect(ports.log).toHaveBeenCalledWith("effect (stub): stopRecording");
+    expect(ports.stopAudio).toHaveBeenCalledTimes(1);
   });
 
   it("toggleChat while editing cancels the edit, then hides", () => {
@@ -121,5 +125,76 @@ describe("mascotStateFor", () => {
     ["result", "done"],
   ] as const)("%s -> %s", (state, expected) => {
     expect(mascotStateFor({ state, editing: false, hasTranscript: false })).toBe(expected);
+  });
+});
+
+describe("audio wiring", () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  it("startRecording starts the microphone, stopRecording stops it", async () => {
+    const { controller, ports } = setup({ state: "idle", editing: false, hasTranscript: false });
+    controller.dispatch({ type: "KEY_Y" });
+    await flush();
+    expect(ports.startAudio).toHaveBeenCalledTimes(1);
+    controller.dispatch({ type: "KEY_ESC" });
+    expect(ports.stopAudio).toHaveBeenCalledTimes(1);
+    expect(controller.model.state).toBe("idle");
+  });
+
+  it("result + Y clears the recording then starts a new one", async () => {
+    const { controller, ports } = setup({ state: "result", editing: false, hasTranscript: true });
+    controller.dispatch({ type: "KEY_Y" });
+    await flush();
+    expect(ports.clearAudio).toHaveBeenCalledTimes(1);
+    expect(ports.startAudio).toHaveBeenCalledTimes(1);
+    expect(controller.model.state).toBe("recording");
+  });
+
+  it("a rejected audio_start sends RECORD_FAILED and returns to idle", async () => {
+    const { controller, ports } = setup({ state: "idle", editing: false, hasTranscript: false });
+    (ports.startAudio as ReturnType<typeof vi.fn>).mockRejectedValue({
+      kind: "no-device",
+      message: "No microphone was found.",
+    });
+    controller.dispatch({ type: "KEY_Y" });
+    expect(controller.model.state).toBe("recording");
+    await flush();
+    expect(controller.model.state).toBe("idle");
+    expect(ports.stopAudio).toHaveBeenCalled(); // RECORD_FAILED from recording also stops
+  });
+
+  it("an audio:error while recording returns to idle with its message", () => {
+    const { controller, ports } = setup({
+      state: "recording",
+      editing: false,
+      hasTranscript: true,
+    });
+    controller.handleAudioError({
+      kind: "device-lost",
+      message: "The microphone was disconnected.",
+    });
+    expect(controller.model.state).toBe("idle");
+    expect(ports.log).toHaveBeenCalledWith("effect (stub): notify");
+  });
+
+  it("a failing stopAudio is logged, not thrown", async () => {
+    const { controller, ports } = setup({
+      state: "recording",
+      editing: false,
+      hasTranscript: true,
+    });
+    (ports.stopAudio as ReturnType<typeof vi.fn>).mockRejectedValue("boom");
+    controller.dispatch({ type: "KEY_ESC" });
+    await flush();
+    expect(ports.log).toHaveBeenCalledWith("audio command failed: boom");
+  });
+
+  it.each([
+    ["plain text", "plain text"],
+    [{ kind: "x", message: "typed" }, "typed"],
+    [{ nope: 1 }, "Recording failed"],
+    [undefined, "Recording failed"],
+  ])("errorMessage(%j)", (input, expected) => {
+    expect(errorMessage(input)).toBe(expected);
   });
 });

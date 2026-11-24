@@ -7,6 +7,9 @@ export const tauriPorts: ControllerPorts = {
   hideChat: () => invoke("hide_chat"),
   focusChat: () => invoke("focus_chat"),
   broadcast: (payload) => emit("app:state", payload),
+  startAudio: () => invoke("audio_start"),
+  stopAudio: () => invoke("audio_stop"),
+  clearAudio: () => invoke("audio_clear"),
   showView: (view) => emit("app:view", { view }),
   log: (message) => console.info(`[controller] ${message}`),
 };

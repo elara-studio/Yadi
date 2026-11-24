@@ -22,6 +22,12 @@ export interface ControllerPorts {
   hideChat(): void | Promise<void>;
   focusChat(): void | Promise<void>;
   broadcast(payload: AppStatePayload): void | Promise<void>;
+  /** Starts the microphone (Rust `audio_start`). Rejects with a typed audio error. */
+  startAudio(): void | Promise<void>;
+  /** Stops the microphone; the recording stays in memory. */
+  stopAudio(): void | Promise<void>;
+  /** Frees the in-memory recording. */
+  clearAudio(): void | Promise<void>;
   /** Tells the chat window which screen to show (`app:view`). */
   showView(view: ChatView): void | Promise<void>;
   /** Diagnostics only. Never pass transcripts, audio or prompts here. */
@@ -54,6 +60,15 @@ export function mascotStateFor(model: Model): MascotState {
     default:
       return "idle";
   }
+}
+
+/** Typed audio errors arrive as `{kind, message}`; anything else is shown as text. */
+export function errorMessage(e: unknown): string {
+  if (typeof e === "string") return e;
+  if (typeof e === "object" && e !== null && "message" in e && typeof e.message === "string") {
+    return e.message;
+  }
+  return "Recording failed";
 }
 
 function sameModel(a: Model, b: Model): boolean {
@@ -140,6 +155,31 @@ export class Controller {
     void this.ports.showView("about");
   }
 
+  /** A failed `audio_start` (no microphone, permission...) ends the recording with a message. */
+  private startAudio(): void {
+    // The port is called synchronously; only the failure handling is asynchronous.
+    void (async () => {
+      try {
+        await this.ports.startAudio();
+      } catch (e) {
+        this.dispatch({ type: "RECORD_FAILED", message: errorMessage(e) });
+      }
+    })();
+  }
+
+  private async guard(work: void | Promise<void>): Promise<void> {
+    try {
+      await work;
+    } catch (e) {
+      this.ports.log(`audio command failed: ${errorMessage(e)}`);
+    }
+  }
+
+  /** `audio:error` from Rust (device unplugged, probable permission problem...). */
+  handleAudioError(payload: unknown): void {
+    this.dispatch({ type: "RECORD_FAILED", message: errorMessage(payload) });
+  }
+
   private isMinimized(): boolean {
     return this.current.state === "minimized";
   }
@@ -160,9 +200,18 @@ export class Controller {
       case "focusChat":
         void this.ports.focusChat();
         break;
+      case "startRecording":
+        this.startAudio();
+        break;
+      case "stopRecording":
+        void this.guard(this.ports.stopAudio());
+        break;
+      case "clearSession":
+        void this.guard(this.ports.clearAudio());
+        break;
       default:
-        // startRecording, stopRecording, startProcessing, cancelProcessing, clearSession,
-        // notify: stubs until later tasks. Log the effect name only, never its content.
+        // startProcessing, cancelProcessing, notify: stubs until later tasks.
+        // Log the effect name only, never its content.
         this.ports.log(`effect (stub): ${effect.type}`);
     }
   }

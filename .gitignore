@@ -9,7 +9,8 @@ coverage/
 models/
 *.onnx
 *.gguf
-scripts/fixtures/*.wav
+scripts/fixtures/*
+!scripts/fixtures/.gitkeep
 
 # secrets and local config
 .env

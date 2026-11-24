@@ -108,6 +108,9 @@ describe("keyboard -> Controller integration", () => {
       focusChat: () => void calls.push("focusChat"),
       broadcast: (p) => void calls.push(`state:${p.state}`),
       showView: () => {},
+      startAudio: () => {},
+      stopAudio: () => {},
+      clearAudio: () => {},
       log: (m) => void calls.push(m),
     };
     const controller = new Controller(ports);
