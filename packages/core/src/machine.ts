@@ -23,6 +23,7 @@ export type AppEvent =
   | { type: "TRANSCRIPT_CHANGED"; hasTranscript: boolean }
   | { type: "PROCESS_DONE" }
   | { type: "PROCESS_FAILED"; message?: string }
+  | { type: "PROCESS_RETRY" }
   | { type: "RECORD_FAILED"; message?: string }
   | { type: "NEW_SESSION" };
 
@@ -155,6 +156,13 @@ export function transition(model: Model, event: AppEvent): Transition {
     case "PROCESS_FAILED":
       return model.state === "processing"
         ? go(model, { state: "idle" }, notify(event.message ?? MSG_PROCESS_FAILED))
+        : noop(model);
+    case "PROCESS_RETRY":
+      // After a failed run or a fixed word the transcript is still there: make the prompt again.
+      return (model.state === "idle" || model.state === "result") &&
+        model.hasTranscript &&
+        !model.editing
+        ? go(model, { state: "processing" }, startProcessing)
         : noop(model);
     case "RECORD_FAILED":
       return onRecordFailed(model, event.message ?? MSG_RECORD_FAILED);

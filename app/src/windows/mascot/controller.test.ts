@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { Controller, errorMessage, mascotStateFor, type ControllerPorts } from "./controller";
+import { EmptyTranscriptError, LlmError, type PipelineResult } from "@yadi/core";
+import {
+  Controller,
+  PROCESS_MESSAGES,
+  classifyProcessError,
+  errorMessage,
+  mascotStateFor,
+  type ControllerPorts,
+  type ProcessErrorPayload,
+  type ResultPayload,
+} from "./controller";
 
 function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
   const calls: string[] = [];
@@ -15,6 +25,12 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     broadcastProgress: vi.fn(),
     stopStt: vi.fn(),
     broadcastTranscript: vi.fn(),
+    // By default the language model never answers, so a run stays in "processing".
+    runPipeline: vi.fn(() => new Promise<PipelineResult>(() => {})),
+    startOllama: vi.fn(async () => {}),
+    warmModel: vi.fn(async () => {}),
+    broadcastResult: vi.fn(),
+    broadcastError: vi.fn(),
     stopAudio: vi.fn(),
     clearAudio: vi.fn(),
     broadcast: vi.fn((p) => void calls.push(`broadcast:${p.state}:${p.editing}`)),
@@ -383,7 +399,8 @@ describe("final pass in the processing flow", () => {
     await flush();
     const calls = (ports.broadcastProgress as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
     expect(calls[0]).toEqual({ stage: "transcribing", done: 0, total: 0 });
-    expect(calls[calls.length - 1]).toBeNull();
+    // The next stage (cleaning, by the language model) follows straight away.
+    expect(calls[1]).toMatchObject({ stage: "cleaning" });
   });
 
   it("forwards chunk progress only while processing", async () => {
@@ -663,5 +680,290 @@ describe("first-run setup gating", () => {
     controller.dispatch({ type: "KEY_ESC" }); // hide
     controller.dispatch({ type: "SUMMON" });
     expect(controller.model.state).toBe("idle");
+  });
+});
+
+describe("prompt pipeline in the processing flow", () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  const TRANSCRIPT = "Write a short email to my landlord about the broken heater.";
+
+  function pipelineResult(prompt: string, degraded = false): PipelineResult {
+    return {
+      prompt,
+      degraded,
+      stage0_text: TRANSCRIPT,
+      clean_text: TRANSCRIPT,
+      analysis: null,
+      dropped: { count: 0, items: [] },
+      warnings: [],
+    };
+  }
+
+  function session(timeoutMs?: number) {
+    const t = setup({ state: "recording", editing: false, hasTranscript: false });
+    // `setup` has no timeout argument, so build the controller again when one is wanted.
+    const controller =
+      timeoutMs === undefined
+        ? t.controller
+        : new Controller(
+            t.ports,
+            { state: "recording", editing: false, hasTranscript: false },
+            timeoutMs,
+          );
+    controller.handleSttFinal({ id: 0, text: TRANSCRIPT });
+    return { ...t, controller };
+  }
+  const pipeline = (ports: ControllerPorts) => ports.runPipeline as ReturnType<typeof vi.fn>;
+  const lastResult = (ports: ControllerPorts) =>
+    (ports.broadcastResult as ReturnType<typeof vi.fn>).mock.lastCall?.[0] as ResultPayload | null;
+  const lastError = (ports: ControllerPorts) =>
+    (ports.broadcastError as ReturnType<typeof vi.fn>).mock
+      .lastCall?.[0] as ProcessErrorPayload | null;
+
+  /** Y to stop and process, then let every pending promise settle. */
+  async function process(controller: Controller) {
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+    await flush();
+  }
+
+  it("idle -> recording -> Y -> processing -> result with a fake STT and a fake model", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: Write a short email."));
+    await process(controller);
+    expect(controller.model.state).toBe("result");
+    expect(pipeline(ports)).toHaveBeenCalledTimes(1);
+    expect(pipeline(ports).mock.calls[0][0].transcript).toBe(TRANSCRIPT);
+    expect(lastResult(ports)).toMatchObject({
+      prompt: "Task: Write a short email.",
+      degraded: false,
+      tokensIn: Math.ceil(TRANSCRIPT.length / 4),
+      tokensOut: Math.ceil("Task: Write a short email.".length / 4),
+    });
+  });
+
+  it("reports the stages in order, with the cleaned text, and clears them at the end", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockImplementation(async (o) => {
+      o.onStage?.("normalize", { clean_text: "Write a short email to my landlord." });
+      o.onStage?.("analyze", {});
+      o.onStage?.("render", { prompt: "x" });
+      return pipelineResult("Task: x");
+    });
+    await process(controller);
+    const calls = (ports.broadcastProgress as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+    expect(calls.map((c) => c?.stage ?? null)).toEqual([
+      "transcribing",
+      "cleaning",
+      "analysing",
+      "writing",
+      null,
+    ]);
+    expect(calls[2].clean).toBe("Write a short email to my landlord.");
+  });
+
+  it("a degraded prompt is flagged in the result", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: minimal", true));
+    await process(controller);
+    expect(controller.model.state).toBe("result");
+    expect(lastResult(ports)?.degraded).toBe(true);
+  });
+
+  it("Esc aborts the request in flight and returns to idle with the transcript intact", async () => {
+    const { controller, ports } = session();
+    let signal: AbortSignal | undefined;
+    pipeline(ports).mockImplementation(
+      (o) =>
+        new Promise((_, reject) => {
+          signal = o.signal;
+          o.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+          );
+        }),
+    );
+    await process(controller);
+    expect(controller.model.state).toBe("processing");
+    expect(signal?.aborted).toBe(false);
+    controller.dispatch({ type: "KEY_ESC" });
+    await flush();
+    expect(signal?.aborted).toBe(true);
+    expect(controller.model.state).toBe("idle");
+    expect(ports.broadcastResult).not.toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: expect.anything() }),
+    );
+    expect(ports.broadcastError).not.toHaveBeenCalled();
+    expect(
+      (ports.broadcastTranscript as ReturnType<typeof vi.fn>).mock.lastCall?.[0].segments[0].text,
+    ).toBe(TRANSCRIPT);
+  });
+
+  it("a result that arrives after Esc is ignored", async () => {
+    const { controller, ports } = session();
+    let finish: (r: PipelineResult) => void = () => {};
+    pipeline(ports).mockImplementation(() => new Promise((r) => (finish = r)));
+    await process(controller);
+    controller.dispatch({ type: "KEY_ESC" });
+    finish(pipelineResult("Task: too late"));
+    await flush();
+    expect(controller.model.state).toBe("idle");
+    expect(ports.broadcastResult).not.toHaveBeenCalled();
+  });
+
+  it("gives up after the timeout and offers a retry", async () => {
+    const { controller, ports } = session(20);
+    pipeline(ports).mockImplementation(
+      (o) =>
+        new Promise((_, reject) =>
+          o.signal?.addEventListener("abort", () =>
+            reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+          ),
+        ),
+    );
+    await process(controller);
+    await new Promise((r) => setTimeout(r, 60));
+    expect(controller.model.state).toBe("idle");
+    expect(lastError(ports)).toEqual({ kind: "timeout", message: PROCESS_MESSAGES.timeout });
+    expect(ports.showNotice).toHaveBeenCalledWith(PROCESS_MESSAGES.timeout);
+  });
+
+  it("an unreachable Ollama is started once, then the run is tried again", async () => {
+    const { controller, ports } = session();
+    pipeline(ports)
+      .mockRejectedValueOnce(new LlmError("Cannot reach Ollama: connection refused"))
+      .mockResolvedValueOnce(pipelineResult("Task: ok"));
+    await process(controller);
+    expect(ports.startOllama).toHaveBeenCalledTimes(1);
+    expect(pipeline(ports)).toHaveBeenCalledTimes(2);
+    expect(controller.model.state).toBe("result");
+  });
+
+  it("an Ollama that cannot be started ends in an 'unreachable' error with Retry", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockRejectedValue(new LlmError("Cannot reach Ollama: connection refused"));
+    (ports.startOllama as ReturnType<typeof vi.fn>).mockRejectedValue("Ollama is not installed.");
+    await process(controller);
+    expect(ports.startOllama).toHaveBeenCalledTimes(1);
+    expect(pipeline(ports)).toHaveBeenCalledTimes(1);
+    expect(controller.model.state).toBe("idle");
+    expect(lastError(ports)?.kind).toBe("unreachable");
+  });
+
+  it("a second unreachable answer after starting Ollama is an error, not a loop", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockRejectedValue(new LlmError("Cannot reach Ollama: connection refused"));
+    await process(controller);
+    expect(ports.startOllama).toHaveBeenCalledTimes(1);
+    expect(pipeline(ports)).toHaveBeenCalledTimes(2);
+    expect(lastError(ports)?.kind).toBe("unreachable");
+  });
+
+  it("a missing model is reported as such and Ollama is not restarted", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockRejectedValue(new LlmError("model 'x' not found", 404));
+    await process(controller);
+    expect(ports.startOllama).not.toHaveBeenCalled();
+    expect(lastError(ports)).toEqual({
+      kind: "model-missing",
+      message: PROCESS_MESSAGES["model-missing"],
+    });
+  });
+
+  it("an unexpected failure is a plain 'failed' error and the log has no text in it", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockRejectedValue(new Error(`boom ${TRANSCRIPT}`));
+    await process(controller);
+    expect(lastError(ports)?.kind).toBe("failed");
+    const logged = (ports.log as ReturnType<typeof vi.fn>).mock.calls.flat().join("\n");
+    expect(logged).not.toContain("landlord");
+  });
+
+  it("Retry (PROCESS_RETRY) after a failure runs the pipeline again and clears the error", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockRejectedValueOnce(new Error("boom"));
+    await process(controller);
+    expect(controller.model.state).toBe("idle");
+    pipeline(ports).mockResolvedValueOnce(pipelineResult("Task: second try"));
+    controller.handleAppEvent({ type: "PROCESS_RETRY" });
+    await flush();
+    await flush();
+    expect(controller.model.state).toBe("result");
+    expect(lastError(ports)).toBeNull();
+    expect(lastResult(ports)?.prompt).toBe("Task: second try");
+  });
+
+  it("keeps the last 10 prompts, newest first", async () => {
+    const { controller, ports } = session();
+    for (let i = 1; i <= 12; i++) {
+      pipeline(ports).mockResolvedValueOnce(pipelineResult(`Task: ${i}`));
+      if (i === 1) await process(controller);
+      else {
+        controller.handleAppEvent({ type: "PROCESS_RETRY" });
+        await flush();
+        await flush();
+      }
+    }
+    const recent = lastResult(ports)?.recent ?? [];
+    expect(recent).toHaveLength(10);
+    expect(recent[0].prompt).toBe("Task: 12");
+    expect(recent[9].prompt).toBe("Task: 3");
+  });
+
+  it("an empty transcript is reported as 'empty'", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockRejectedValue(new EmptyTranscriptError());
+    await process(controller);
+    expect(lastError(ports)?.kind).toBe("empty");
+  });
+
+  it("a new recording clears the previous result and error", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: one"));
+    await process(controller);
+    expect(controller.model.state).toBe("result");
+    controller.dispatch({ type: "KEY_Y" }); // result + Y = next recording
+    expect(lastResult(ports)).toBeNull();
+    expect(lastError(ports)).toBeNull();
+  });
+
+  it("SYNC sends the current result and error to a chat window that just loaded", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: one"));
+    await process(controller);
+    (ports.broadcastResult as ReturnType<typeof vi.fn>).mockClear();
+    controller.handleAppEvent({ type: "SYNC" });
+    expect(lastResult(ports)?.prompt).toBe("Task: one");
+  });
+
+  it("warms the language model when setup is known to be complete, and after setup finishes", async () => {
+    const { controller, ports } = setup();
+    controller.setSetupComplete(false);
+    expect(ports.warmModel).not.toHaveBeenCalled();
+    controller.setSetupComplete(true);
+    expect(ports.warmModel).toHaveBeenCalledTimes(1);
+    const second = setup({ state: "setup", editing: false, hasTranscript: false });
+    second.controller.dispatch({ type: "SETUP_DONE" });
+    expect(second.ports.warmModel).toHaveBeenCalledTimes(1);
+  });
+
+  it("a failing warm-up is ignored", async () => {
+    const { controller, ports } = setup();
+    (ports.warmModel as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("no ollama"));
+    controller.setSetupComplete(true);
+    await flush();
+    expect(controller.model.state).toBe("minimized");
+  });
+});
+
+describe("classifyProcessError", () => {
+  it("maps what the pipeline throws to a kind", () => {
+    expect(classifyProcessError(new Error("x"), true)).toBe("timeout");
+    expect(classifyProcessError(new EmptyTranscriptError(), false)).toBe("empty");
+    expect(classifyProcessError(new LlmError("not found", 404), false)).toBe("model-missing");
+    expect(classifyProcessError(new LlmError("model 'q' not found"), false)).toBe("model-missing");
+    expect(classifyProcessError(new LlmError("Cannot reach Ollama: x"), false)).toBe("unreachable");
+    expect(classifyProcessError(new LlmError("server error", 500), false)).toBe("failed");
+    expect(classifyProcessError("weird", false)).toBe("failed");
   });
 });

@@ -2,9 +2,15 @@ import {
   type AppEvent,
   type AppState,
   type Effect,
+  EmptyTranscriptError,
+  LlmError,
   type Model,
+  type PipelineResult,
+  type RunOptions,
+  type StageName,
   Transcript,
   type TranscriptSnapshot,
+  estimateTokens,
   initialModel,
   transition,
 } from "@yadi/core";
@@ -23,12 +29,53 @@ export interface FinalPassOutcome {
   notice: string | null;
 }
 
-/** Payload of `app:progress`. `done`/`total` count chunks of the stage; 0/0 = not known yet. */
+/** The stages shown while processing, in order. */
+export const PROCESS_STAGES = ["transcribing", "cleaning", "analysing", "writing"] as const;
+export type ProcessStage = (typeof PROCESS_STAGES)[number];
+
+/**
+ * Payload of `app:progress`. `done`/`total` count chunks of the transcribing stage; 0/0 = not
+ * known yet. `clean` is the cleaned-up transcript, sent once the "cleaning" stage has finished.
+ */
 export interface ProgressPayload {
-  stage: "transcribing";
+  stage: ProcessStage;
   done: number;
   total: number;
+  clean?: string;
 }
+
+/** One finished prompt kept in memory (never written anywhere). */
+export interface RecentItem {
+  prompt: string;
+  at: number;
+}
+
+/** Payload of `app:result`: the finished prompt and what the result view shows around it. */
+export interface ResultPayload {
+  prompt: string;
+  /** The model's answers could not be used, so this is a minimal prompt. */
+  degraded: boolean;
+  /** Approximate token counts (chars / 4). */
+  tokensIn: number;
+  tokensOut: number;
+  /** The last 10 prompts of this run of the app, newest first (includes this one). */
+  recent: RecentItem[];
+}
+
+export type ProcessErrorKind = "unreachable" | "model-missing" | "timeout" | "empty" | "failed";
+
+/** Payload of `app:error`: why processing failed, for the Retry panel. */
+export interface ProcessErrorPayload {
+  kind: ProcessErrorKind;
+  message: string;
+}
+
+/** What the pipeline port receives (the port adds the language-model client). */
+export type PipelineRunOptions = Omit<RunOptions, "llm">;
+
+/** How long one prompt may take before it is cancelled (plan Task 19: 120 s). */
+export const PROCESS_TIMEOUT_MS = 120_000;
+export const RECENT_LIMIT = 10;
 
 /** Edits the chat window sends to the Controller (the transcript lives here). */
 export type TranscriptEditEvent =
@@ -62,6 +109,16 @@ export interface ControllerPorts {
   broadcastTranscript(snapshot: TranscriptSnapshot): void | Promise<void>;
   /** Tells the chat window which screen to show (`app:view`). */
   showView(view: ChatView): void | Promise<void>;
+  /** Runs the prompt pipeline with the language model chosen for this machine. */
+  runPipeline(options: PipelineRunOptions): Promise<PipelineResult>;
+  /** Starts Ollama if it is installed but not running. Rejects when it cannot. */
+  startOllama(): Promise<void>;
+  /** Loads the language model into memory in the background. Failures are ignored. */
+  warmModel(): Promise<void>;
+  /** Sends the finished prompt to the chat window (`app:result`); null clears it. */
+  broadcastResult(result: ResultPayload | null): void | Promise<void>;
+  /** Sends the reason processing failed (`app:error`); null clears it. */
+  broadcastError(error: ProcessErrorPayload | null): void | Promise<void>;
   /** Diagnostics only. Never pass transcripts, audio or prompts here. */
   log(message: string): void;
 }
@@ -77,6 +134,7 @@ const EVENT_TYPES: ReadonlySet<string> = new Set([
   "TRANSCRIPT_CHANGED",
   "PROCESS_DONE",
   "PROCESS_FAILED",
+  "PROCESS_RETRY",
   "RECORD_FAILED",
   "NEW_SESSION",
 ]);
@@ -110,6 +168,28 @@ export function errorMessage(e: unknown): string {
   return "Recording failed";
 }
 
+/** Words for each failure, shown to the user. Never contains transcript text. */
+export const PROCESS_MESSAGES: Record<ProcessErrorKind, string> = {
+  unreachable: "Yadi could not reach the language model (Ollama). Make sure Ollama is running.",
+  "model-missing": "The language model is not installed on this computer.",
+  timeout: "Making the prompt took too long and was stopped.",
+  empty: "There is nothing to turn into a prompt yet.",
+  failed: "Making the prompt failed.",
+};
+
+/** Maps whatever the pipeline threw to a user-facing kind. */
+export function classifyProcessError(e: unknown, timedOut: boolean): ProcessErrorKind {
+  if (timedOut) return "timeout";
+  if (e instanceof EmptyTranscriptError) return "empty";
+  if (e instanceof LlmError) {
+    if (e.status === 404 || /not found/i.test(e.message)) return "model-missing";
+    if (e.status === undefined && /cannot reach|connect|refused|failed to fetch/i.test(e.message)) {
+      return "unreachable";
+    }
+  }
+  return "failed";
+}
+
 function sameModel(a: Model, b: Model): boolean {
   return a.state === b.state && a.editing === b.editing && a.hasTranscript === b.hasTranscript;
 }
@@ -121,7 +201,8 @@ export type Listener = (model: Model) => void;
  * webview is never throttled). Applies events through the reducer, runs the resulting effects
  * and broadcasts `app:state`.
  *
- * Recording/processing effects are stubs until Tasks 10 and 19: they only log the effect name.
+ * Processing runs the final pass, then the prompt pipeline (`makePrompt`), and ends with
+ * PROCESS_DONE or PROCESS_FAILED.
  */
 export class Controller {
   private current: Model;
@@ -133,6 +214,11 @@ export class Controller {
   private setupComplete = true;
   /** Bumped when processing starts and when it is cancelled, so late results can be ignored. */
   private processingRun = 0;
+  /** Cancels the language-model work of the current run. */
+  private abort: AbortController | null = null;
+  private recent: RecentItem[] = [];
+  private lastResult: ResultPayload | null = null;
+  private lastError: ProcessErrorPayload | null = null;
 
   /**
    * Starts in `minimized` (mascot visible, chat hidden). Task 15 will start in `setup` until
@@ -141,6 +227,7 @@ export class Controller {
   constructor(
     private readonly ports: ControllerPorts,
     initial: Model = { ...initialModel, state: "minimized" },
+    private readonly processTimeoutMs: number = PROCESS_TIMEOUT_MS,
   ) {
     this.current = initial;
   }
@@ -157,6 +244,8 @@ export class Controller {
   /** Tells the Controller whether first-run setup is finished (read from `setup.json` at startup). */
   setSetupComplete(complete: boolean): void {
     this.setupComplete = complete;
+    // Load the language model in the background so the first prompt is not slow.
+    if (complete) void this.guard(this.ports.warmModel());
   }
 
   dispatch(event: AppEvent): void {
@@ -164,7 +253,10 @@ export class Controller {
     if (event.type === "SUMMON" && !this.setupComplete && this.current.state === "minimized") {
       event = { type: "SETUP_START" };
     }
-    if (event.type === "SETUP_DONE") this.setupComplete = true;
+    if (event.type === "SETUP_DONE") {
+      this.setupComplete = true;
+      void this.guard(this.ports.warmModel());
+    }
     if (
       event.type === "SETUP_START" &&
       ["minimized", "idle", "result"].includes(this.current.state)
@@ -190,6 +282,8 @@ export class Controller {
       // The chat window just loaded and wants the current state.
       this.broadcast();
       void this.ports.broadcastTranscript(this.transcript.snapshot());
+      void this.ports.broadcastResult(this.lastResult);
+      void this.ports.broadcastError(this.lastError);
       return;
     }
     if (type === "TRANSCRIPT_SET_TEXT") {
@@ -295,9 +389,96 @@ export class Controller {
       void this.ports.broadcastTranscript(this.transcript.snapshot());
       if (outcome.notice) void this.ports.showNotice(outcome.notice);
       if (run !== this.processingRun) return; // cancelled while the pass ran
-      void this.ports.broadcastProgress(null);
-      this.ports.log("processing pipeline is not implemented yet (Task 19)");
+      await this.makePrompt(run);
     })();
+  }
+
+  /**
+   * Processing, stages 2-4: clean, analyse and write the prompt with the language model. Esc (or a
+   * newer run) aborts the request; 120 s without an answer aborts it too. If Ollama is not
+   * reachable it is started once and the run is tried again.
+   */
+  private async makePrompt(run: number): Promise<void> {
+    const transcript = this.transcript.text();
+    const abort = new AbortController();
+    this.abort = abort;
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      abort.abort();
+    }, this.processTimeoutMs);
+    const current = () => run === this.processingRun;
+    const stage = (stageName: ProcessStage, clean?: string) => {
+      if (current())
+        void this.ports.broadcastProgress({ stage: stageName, done: 0, total: 0, clean });
+    };
+    const options: PipelineRunOptions = {
+      transcript,
+      signal: abort.signal,
+      onStage: (name: StageName, data: unknown) => {
+        if (name === "normalize") {
+          stage("analysing", (data as { clean_text?: string }).clean_text);
+        } else if (name === "analyze") {
+          stage("writing");
+        }
+      },
+    };
+    try {
+      stage("cleaning");
+      let result: PipelineResult;
+      try {
+        result = await this.ports.runPipeline(options);
+      } catch (e) {
+        if (classifyProcessError(e, timedOut) !== "unreachable" || !current()) throw e;
+        this.ports.log("language model unreachable; trying to start Ollama once");
+        try {
+          await this.ports.startOllama();
+        } catch {
+          throw e; // it could not be started: report the original "unreachable"
+        }
+        stage("cleaning");
+        result = await this.ports.runPipeline(options);
+      }
+      if (!current()) return; // cancelled while the model was working
+      this.finishWithResult(result, transcript);
+    } catch (e) {
+      if (!current()) return; // cancelled by the user: back to idle already, nothing to say
+      const kind = classifyProcessError(e, timedOut);
+      this.ports.log(`processing failed: ${kind}`); // never the text, never the model's answer
+      this.lastError = { kind, message: PROCESS_MESSAGES[kind] };
+      void this.ports.broadcastError(this.lastError);
+      void this.ports.broadcastProgress(null);
+      this.dispatch({ type: "PROCESS_FAILED", message: PROCESS_MESSAGES[kind] });
+    } finally {
+      clearTimeout(timer);
+      if (this.abort === abort) this.abort = null;
+    }
+  }
+
+  private finishWithResult(result: PipelineResult, transcript: string): void {
+    this.recent = [{ prompt: result.prompt, at: Date.now() }, ...this.recent].slice(
+      0,
+      RECENT_LIMIT,
+    );
+    this.lastResult = {
+      prompt: result.prompt,
+      degraded: result.degraded,
+      tokensIn: estimateTokens(transcript),
+      tokensOut: estimateTokens(result.prompt),
+      recent: this.recent,
+    };
+    void this.ports.broadcastResult(this.lastResult);
+    void this.ports.broadcastProgress(null);
+    this.dispatch({ type: "PROCESS_DONE" });
+  }
+
+  /** Forgets the last result and error (a new recording or session starts). */
+  private clearOutcome(): void {
+    if (this.lastResult === null && this.lastError === null) return;
+    this.lastResult = null;
+    this.lastError = null;
+    void this.ports.broadcastResult(null);
+    void this.ports.broadcastError(null);
   }
 
   /**
@@ -380,14 +561,17 @@ export class Controller {
         void this.ports.focusChat();
         break;
       case "startRecording":
+        this.clearOutcome();
         this.transcript.beginRecording();
         this.startRecording();
         break;
       case "startProcessing":
+        this.clearOutcome();
         this.startProcessing();
         break;
       case "cancelProcessing":
         this.processingRun++;
+        this.abort?.abort();
         void this.ports.broadcastProgress(null);
         break;
       case "notify":
@@ -397,6 +581,7 @@ export class Controller {
         this.stopRecording();
         break;
       case "clearSession":
+        this.clearOutcome();
         this.transcript.clear();
         void this.ports.broadcastTranscript(this.transcript.snapshot());
         void this.guard(this.ports.clearAudio());

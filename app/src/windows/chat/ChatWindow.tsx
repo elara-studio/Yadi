@@ -3,6 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { loadSetupState, restartSetup, type AppEvent, type TranscriptSnapshot } from "@yadi/core";
 import { AboutView } from "../../about/AboutView";
+import { ProcessErrorView } from "../../components/ProcessErrorView";
+import { ProcessingView } from "../../components/ProcessingView";
+import { ResultView } from "../../components/ResultView";
 import { TranscriptView } from "../../components/TranscriptView";
 import { SettingsView } from "../../settings/SettingsView";
 import { SetupWizard } from "../../setup/SetupWizard";
@@ -11,7 +14,9 @@ import { createMockSetupApi } from "../../setup/mockApi";
 import type {
   AppStatePayload,
   ChatView,
+  ProcessErrorPayload,
   ProgressPayload,
+  ResultPayload,
   TranscriptEditEvent,
 } from "../mascot/controller";
 import { useKeyboardControls } from "./useKeyboardControls";
@@ -33,6 +38,8 @@ export function ChatWindow() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [setupApi, setSetupApi] = useState<SetupApi | null>(null);
   const [progress, setProgress] = useState<ProgressPayload | null>(null);
+  const [result, setResult] = useState<ResultPayload | null>(null);
+  const [processError, setProcessError] = useState<ProcessErrorPayload | null>(null);
   const [transcript, setTranscript] = useState<TranscriptSnapshot>({ segments: [], partial: "" });
 
   useKeyboardControls(sendToController);
@@ -68,6 +75,8 @@ export function ChatWindow() {
       listen<TranscriptSnapshot>("app:transcript", (e) => setTranscript(e.payload)),
       listen<Notice>("app:notice", (e) => setNotice(e.payload)),
       listen<ProgressPayload | null>("app:progress", (e) => setProgress(e.payload)),
+      listen<ResultPayload | null>("app:result", (e) => setResult(e.payload)),
+      listen<ProcessErrorPayload | null>("app:error", (e) => setProcessError(e.payload)),
     ];
     // Ask the Controller for the current state in case we loaded after its last broadcast.
     void Promise.all(pending).then(() => emit("app:event", { type: "SYNC" }));
@@ -123,7 +132,7 @@ export function ChatWindow() {
                 i
               </button>
             </div>
-            {notice && (
+            {notice && notice.message !== processError?.message && (
               <div className="chat-notice" role="alert">
                 <span>{notice.message}</span>
                 {notice.action === "fix-permissions" && (
@@ -136,15 +145,21 @@ export function ChatWindow() {
                 </button>
               </div>
             )}
-            {app.state === "processing" && (
-              <ul className="stages" aria-label="Progress">
-                <li className="stage-active" aria-current="step">
-                  Transcribing
-                  {progress && progress.total > 1 ? ` ${progress.done}/${progress.total}` : "…"}
-                </li>
-              </ul>
+            {app.state === "processing" && <ProcessingView progress={progress} />}
+            {app.state === "idle" && processError && (
+              <ProcessErrorView
+                error={processError}
+                onRetry={() => sendToController({ type: "PROCESS_RETRY" })}
+                onRepair={() => void rerunSetup(true)}
+              />
             )}
             <div className="chat-body">
+              {app.state === "result" && result && (
+                <ResultView
+                  result={result}
+                  onRegenerate={() => sendToController({ type: "PROCESS_RETRY" })}
+                />
+              )}
               <TranscriptView
                 snapshot={transcript}
                 state={app.state}

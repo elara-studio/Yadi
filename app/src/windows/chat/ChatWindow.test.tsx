@@ -135,12 +135,109 @@ describe("ChatWindow", () => {
     expect(screen.queryByLabelText("Progress")).not.toBeInTheDocument();
     act(() => handlers.get("app:state")?.({ payload: { state: "processing", editing: false } }));
     expect(screen.getByLabelText("Progress")).toHaveTextContent("Transcribing…");
+    expect(screen.getByLabelText("Progress")).toHaveTextContent("Writing");
     act(() =>
       handlers.get("app:progress")?.({ payload: { stage: "transcribing", done: 1, total: 3 } }),
     );
     expect(screen.getByLabelText("Progress")).toHaveTextContent("Transcribing 1/3");
     act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
     expect(screen.queryByLabelText("Progress")).not.toBeInTheDocument();
+  });
+
+  describe("result and errors (Task 19)", () => {
+    const RESULT = {
+      prompt: "Task: Fix the sink.",
+      degraded: false,
+      tokensIn: 10,
+      tokensOut: 40,
+      recent: [{ prompt: "Task: Fix the sink.", at: 1 }],
+    };
+
+    it("shows the prompt card in the result state, above the transcript", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:result")?.({ payload: RESULT }));
+      act(() => handlers.get("app:state")?.({ payload: { state: "result", editing: false } }));
+      expect(await screen.findByTestId("prompt-text")).toBeInTheDocument();
+      expect(screen.getByTestId("transcript")).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByTestId("prompt-text")).toHaveTextContent("Task: Fix the sink."),
+      );
+    });
+
+    it("does not show a stale prompt outside the result state", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:result")?.({ payload: RESULT }));
+      act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+      expect(screen.queryByTestId("prompt-text")).not.toBeInTheDocument();
+    });
+
+    it("'Make it again' sends PROCESS_RETRY", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:result")?.({ payload: RESULT }));
+      act(() => handlers.get("app:state")?.({ payload: { state: "result", editing: false } }));
+      fireEvent.click(await screen.findByRole("button", { name: "Make it again" }));
+      expect(emit).toHaveBeenCalledWith("app:event", { type: "PROCESS_RETRY" });
+    });
+
+    it("shows the failure with Retry in idle, once, and Retry sends PROCESS_RETRY", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+      act(() =>
+        handlers.get("app:error")?.({
+          payload: { kind: "timeout", message: "Making the prompt took too long and was stopped." },
+        }),
+      );
+      // The state machine also raises the same text as a notice: it must not appear twice.
+      act(() =>
+        handlers.get("app:notice")?.({
+          payload: { message: "Making the prompt took too long and was stopped.", action: null },
+        }),
+      );
+      expect(screen.getAllByRole("alert")).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(emit).toHaveBeenCalledWith("app:event", { type: "PROCESS_RETRY" });
+    });
+
+    it("a missing model opens setup in repair mode", async () => {
+      invoke.mockImplementation((cmd: string) =>
+        Promise.resolve(
+          cmd === "is_mock_setup" || cmd === "setup_mock_enabled"
+            ? true
+            : cmd === "get_notice"
+              ? null
+              : undefined,
+        ),
+      );
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+      act(() =>
+        handlers.get("app:error")?.({
+          payload: { kind: "model-missing", message: "The language model is not installed." },
+        }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Open setup to install it" }));
+      await waitFor(() => expect(emit).toHaveBeenCalledWith("app:event", { type: "SETUP_START" }));
+      invoke.mockImplementation((cmd: string) =>
+        Promise.resolve(cmd === "get_notice" ? null : undefined),
+      );
+    });
+
+    it("the error panel is gone after a new run starts", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+      act(() =>
+        handlers.get("app:error")?.({ payload: { kind: "failed", message: "Making it failed." } }),
+      );
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+      act(() => handlers.get("app:error")?.({ payload: null }));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
   });
 
   it("shows runtime notices sent as app:notice", async () => {

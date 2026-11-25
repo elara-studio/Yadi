@@ -586,3 +586,138 @@ body,
   background: #fff1e8;
   font-size: 11px;
 }
+
+/* ---------- processing and result (Task 19) ---------- */
+.processing .stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  align-items: center;
+}
+.stage-done {
+  opacity: 0.75;
+}
+.stage-pending {
+  opacity: 0.4;
+}
+.stage-mark {
+  display: inline-block;
+  width: 1.2em;
+}
+.stage-active .stage-mark {
+  animation: stage-pulse 1s ease-in-out infinite;
+}
+.stage-elapsed {
+  margin-left: auto;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.stage-clean {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  opacity: 0.5;
+}
+@keyframes stage-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage-active .stage-mark {
+    animation: none;
+  }
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.result-card {
+  margin: 0;
+  padding: 10px;
+  background: rgb(0 0 0 / 5%);
+  border-radius: 8px;
+  font:
+    12px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.result-tokens {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.6;
+}
+.copy-primary,
+.copy-secondary {
+  border: 1px solid var(--yadi-orange);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.copy-primary {
+  background: var(--yadi-orange);
+  color: #fff;
+}
+.copy-secondary {
+  background: transparent;
+  color: var(--yadi-orange);
+}
+.result-degraded {
+  margin: 0;
+  padding: 6px 8px;
+  background: #fff1e8;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.result-recent {
+  font-size: 12px;
+}
+.result-recent ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.result-recent li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+}
+.recent-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+.process-error {
+  padding: 10px 14px;
+  background: #fff1e8;
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+  font-size: 12px;
+}
+.process-error p {
+  margin: 0 0 8px;
+}
+.process-error-actions {
+  display: flex;
+  gap: 8px;
+}
+.process-error-note {
+  margin: 8px 0 0;
+  opacity: 0.6;
+}

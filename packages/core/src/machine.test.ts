@@ -178,6 +178,49 @@ const rows: Row[] = [
     to: m("idle"),
     effects: [],
   },
+  // PROCESS_RETRY
+  {
+    name: "idle with a transcript + PROCESS_RETRY starts processing again",
+    from: m("idle", { hasTranscript: true }),
+    event: { type: "PROCESS_RETRY" },
+    to: m("processing", { hasTranscript: true }),
+    effects: e("startProcessing"),
+  },
+  {
+    name: "idle without a transcript + PROCESS_RETRY ignored",
+    from: m("idle"),
+    event: { type: "PROCESS_RETRY" },
+    to: m("idle"),
+    effects: [],
+  },
+  {
+    name: "idle while editing + PROCESS_RETRY ignored",
+    from: m("idle", { hasTranscript: true, editing: true }),
+    event: { type: "PROCESS_RETRY" },
+    to: m("idle", { hasTranscript: true, editing: true }),
+    effects: [],
+  },
+  {
+    name: "recording + PROCESS_RETRY ignored",
+    from: m("recording", { hasTranscript: true }),
+    event: { type: "PROCESS_RETRY" },
+    to: m("recording", { hasTranscript: true }),
+    effects: [],
+  },
+  {
+    name: "result + PROCESS_RETRY makes the prompt again (e.g. after fixing a word)",
+    from: m("result", { hasTranscript: true }),
+    event: { type: "PROCESS_RETRY" },
+    to: m("processing", { hasTranscript: true }),
+    effects: e("startProcessing"),
+  },
+  {
+    name: "processing + PROCESS_RETRY ignored",
+    from: m("processing", { hasTranscript: true }),
+    event: { type: "PROCESS_RETRY" },
+    to: m("processing", { hasTranscript: true }),
+    effects: [],
+  },
   // RECORD_FAILED
   {
     name: "recording + RECORD_FAILED stops and returns to idle",
