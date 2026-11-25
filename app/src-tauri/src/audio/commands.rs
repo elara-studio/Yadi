@@ -4,7 +4,7 @@
 use std::sync::{Arc, Mutex};
 
 use serde_json::json;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use super::file_source::{FileSource, Pace};
 use super::mic::MicSource;
@@ -62,7 +62,14 @@ pub fn audio_start(app: AppHandle, state: State<AudioState>) -> Result<(), Audio
                     return Err(err);
                 }
                 // Without a native permission answer, fall back to the silence heuristic.
-                (Box::new(MicSource::new()), status == MicPermission::Unknown)
+                let device = app
+                    .try_state::<crate::settings::SettingsState>()
+                    .and_then(|s| s.0.lock().ok().map(|s| s.microphone.device.clone()))
+                    .flatten();
+                (
+                    Box::new(MicSource::with_device(device)),
+                    status == MicPermission::Unknown,
+                )
             }
         };
     let session = Session::start(

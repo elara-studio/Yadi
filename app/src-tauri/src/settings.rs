@@ -60,12 +60,35 @@ impl Default for FinalPassSettings {
     }
 }
 
+/// Which microphone to record from. `None` = the system default.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MicrophoneSettings {
+    pub device: Option<String>,
+}
+
+/// A language model chosen by the user instead of the one picked for this hardware.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct LlmSettings {
+    /// A catalogue id (`models.json`). `None` = the hardware tier's model.
+    pub model_id: Option<String>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub summon: Summon,
     #[serde(rename = "finalPass")]
     pub final_pass: FinalPassSettings,
+    pub microphone: MicrophoneSettings,
+    pub llm: LlmSettings,
+}
+
+fn clean_optional(value: Option<String>, max: usize) -> Option<String> {
+    value
+        .map(|v| v.trim().chars().take(max).collect::<String>())
+        .filter(|v| !v.is_empty())
 }
 
 impl Settings {
@@ -74,6 +97,8 @@ impl Settings {
         self.summon.threshold_ms = longpress::clamp_threshold(self.summon.threshold_ms);
         let trimmed = self.summon.chord.trim();
         self.final_pass.timeout_seconds = self.final_pass.timeout_seconds.clamp(5, 120);
+        self.microphone.device = clean_optional(self.microphone.device.take(), 200);
+        self.llm.model_id = clean_optional(self.llm.model_id.take(), 100);
         self.summon.chord = if trimmed.is_empty() {
             DEFAULT_CHORD.to_string()
         } else {
@@ -140,6 +165,19 @@ pub fn set_settings(
     Ok(settings)
 }
 
+/// "Reset everything": default settings (applied to the summon hotkey too) and an empty
+/// vocabulary. Downloaded models and the setup progress are kept.
+#[tauri::command]
+pub fn reset_everything(app: AppHandle, state: State<SettingsState>) -> Result<Settings, String> {
+    let settings = Settings::default();
+    hotkey::apply(&app, &settings)?;
+    save(&app, &settings)?;
+    *state.0.lock().expect("settings lock") = settings.clone();
+    crate::vocabulary::clear(&app)?;
+    log::info!("settings and vocabulary were reset");
+    Ok(settings)
+}
+
 /// Called once from `setup`: loads settings, shares them, and starts the summon hotkey.
 pub fn init(app: &AppHandle) {
     let settings = load(app);
@@ -184,6 +222,55 @@ mod tests {
         assert_eq!(s.clone().normalized().final_pass.timeout_seconds, 5);
         s.final_pass.timeout_seconds = 9_999;
         assert_eq!(s.normalized().final_pass.timeout_seconds, 120);
+    }
+
+    #[test]
+    fn microphone_and_model_choices_default_to_automatic_and_load_from_old_files() {
+        let s = Settings::default();
+        assert_eq!(s.microphone.device, None);
+        assert_eq!(s.llm.model_id, None);
+        let old: Settings = serde_json::from_str(r#"{"summon":{"mode":"chord"}}"#).unwrap();
+        assert_eq!(old.microphone, MicrophoneSettings::default());
+        assert_eq!(old.llm, LlmSettings::default());
+    }
+
+    #[test]
+    fn microphone_and_model_choices_are_trimmed_and_blank_means_automatic() {
+        let mut s = Settings::default();
+        s.microphone.device = Some("  USB Mic  ".into());
+        s.llm.model_id = Some("   ".into());
+        let n = s.normalized();
+        assert_eq!(n.microphone.device.as_deref(), Some("USB Mic"));
+        assert_eq!(n.llm.model_id, None);
+        let mut long = Settings::default();
+        long.microphone.device = Some("x".repeat(500));
+        assert_eq!(
+            long.normalized().microphone.device.unwrap().chars().count(),
+            200
+        );
+    }
+
+    #[test]
+    fn choices_round_trip_through_json() {
+        let mut s = Settings::default();
+        s.microphone.device = Some("Studio".into());
+        s.llm.model_id = Some("qwen3-8b".into());
+        let back: Settings = serde_json::from_value(serde_json::to_value(&s).unwrap()).unwrap();
+        assert_eq!(back, s);
+    }
+
+    /// `set_settings` clamps the hold time and then hands it to the detector.
+    #[test]
+    fn a_new_hold_time_reaches_the_detector_clamped() {
+        use crate::hotkey::{apply_threshold, hook::Shared};
+        let shared = Shared::new(400);
+        for (asked, expected) in [(700, 700), (100, 250), (5_000, 900), (250, 250), (900, 900)] {
+            let mut s = Settings::default();
+            s.summon.threshold_ms = asked;
+            let applied = s.normalized();
+            apply_threshold(&shared, &applied);
+            assert_eq!(shared.threshold(), expected, "asked for {asked}");
+        }
     }
 
     #[test]

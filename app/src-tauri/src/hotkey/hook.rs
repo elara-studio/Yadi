@@ -88,6 +88,11 @@ impl Shared {
         self.threshold_ms.store(ms, Ordering::Relaxed);
         self.engine().set_threshold(ms);
     }
+
+    #[cfg(test)]
+    pub fn threshold(&self) -> u32 {
+        self.threshold_ms.load(Ordering::Relaxed)
+    }
 }
 
 /// Owner of the shared state and of the one-time OS hook installation.

@@ -29,7 +29,9 @@ export const tauriPorts: ControllerPorts = {
   showView: (view) => emit("app:view", { view }),
   runPipeline: async (options) => {
     const llm = new OllamaClient({ model: await llmTag(), fetch: tauriFetch as typeof fetch });
-    return runPipeline({ ...options, llm });
+    // The user's own words, as preferred spellings (the pipeline trims and caps them at 100).
+    const vocabulary = await invoke<string[]>("get_vocabulary").catch(() => [] as string[]);
+    return runPipeline({ vocabulary, ...options, llm });
   },
   startOllama: async () => void (await invoke("ollama_start")),
   warmModel: async () => {

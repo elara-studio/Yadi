@@ -106,7 +106,11 @@ export function ChatWindow() {
           </div>
         ) : view === "settings" ? (
           <div className="chat-body">
-            <SettingsView onBack={() => setView("chat")} onRerunSetup={(r) => void rerunSetup(r)} />
+            <SettingsView
+              onBack={() => setView("chat")}
+              onRerunSetup={(r) => void rerunSetup(r)}
+              onOpenAbout={() => setView("about")}
+            />
           </div>
         ) : app.state === "setup" ? (
           <div className="chat-body">

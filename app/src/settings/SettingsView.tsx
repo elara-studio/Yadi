@@ -1,19 +1,45 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { MAX_THRESHOLD_MS, MIN_THRESHOLD_MS, type Settings, type SummonMode } from "./types";
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { HoldTest } from "./HoldTest";
+import { VocabularyEditor } from "./VocabularyEditor";
+import {
+  MAX_THRESHOLD_MS,
+  MIN_THRESHOLD_MS,
+  type InputDevice,
+  type LlmOption,
+  type Settings,
+  type SummonMode,
+} from "./types";
 
-/** Settings stub (Task 07): how Yadi is summoned. Task 21 completes the settings screen. */
+const GB = 1024 * 1024 * 1024;
+const gbText = (bytes: number) => `${(bytes / GB).toFixed(1)} GB`;
+
+function messageOf(e: unknown): string {
+  return typeof e === "string" ? e : e instanceof Error ? e.message : "Something went wrong.";
+}
+
+/** Everything the person can change, in the order they are likely to look for it. */
 export function SettingsView({
   onBack,
   onRerunSetup,
+  onOpenAbout,
 }: {
   onBack: () => void;
   /** Re-opens the setup wizard; `repair` also downloads the models again. */
   onRerunSetup?: (repair: boolean) => void;
+  /** Opens the About / licences page. */
+  onOpenAbout?: () => void;
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [devices, setDevices] = useState<InputDevice[]>([]);
+  const [models, setModels] = useState<LlmOption[]>([]);
+  const [modelInstalled, setModelInstalled] = useState<boolean | null>(null);
+  const [autostart, setAutostart] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [vocabularyKey, setVocabularyKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,24 +47,50 @@ export function SettingsView({
       (s) => !cancelled && setSettings(s),
       (e) => !cancelled && setError(String(e)),
     );
+    // These are extras: if one fails the rest of the screen still works.
+    invoke<InputDevice[]>("audio_list_devices").then(
+      (d) => !cancelled && setDevices(d ?? []),
+      () => {},
+    );
+    invoke<LlmOption[]>("llm_options_list").then(
+      (m) => !cancelled && setModels(m ?? []),
+      () => {},
+    );
+    isEnabled().then(
+      (on) => !cancelled && setAutostart(on),
+      () => {},
+    );
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // Is the chosen model already on this computer?
+  const chosenTag = models.find((m) => m.id === settings?.llm?.model_id)?.tag;
+  useEffect(() => {
+    let cancelled = false;
+    setModelInstalled(null);
+    if (chosenTag) {
+      invoke<boolean>("ollama_has", { tag: chosenTag }).then(
+        (has) => !cancelled && setModelInstalled(has),
+        () => {},
+      );
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [chosenTag]);
+
   if (!settings) {
     return <p>{error ?? "Loading…"}</p>;
   }
 
-  const update = (patch: Partial<Settings["summon"]>) => {
+  const change = (next: Settings) => {
     setSaved(false);
-    setSettings({ ...settings, summon: { ...settings.summon, ...patch } });
+    setSettings(next);
   };
-
-  const setFinalPass = (enabled: boolean) => {
-    setSaved(false);
-    setSettings({ ...settings, finalPass: { ...settings.finalPass, enabled } });
-  };
+  const updateSummon = (patch: Partial<Settings["summon"]>) =>
+    change({ ...settings, summon: { ...settings.summon, ...patch } });
 
   const save = async () => {
     setError(null);
@@ -46,11 +98,40 @@ export function SettingsView({
       setSettings(await invoke<Settings>("set_settings", { settings }));
       setSaved(true);
     } catch (e) {
-      setError(String(e));
+      setError(messageOf(e));
+    }
+  };
+
+  const toggleAutostart = async (on: boolean) => {
+    setError(null);
+    try {
+      await (on ? enable() : disable());
+      setAutostart(await isEnabled());
+    } catch (e) {
+      setError(messageOf(e));
+    }
+  };
+
+  const resetEverything = async () => {
+    setError(null);
+    setConfirmReset(false);
+    try {
+      setSettings(await invoke<Settings>("reset_everything"));
+      await disable().catch(() => {});
+      setAutostart(await isEnabled().catch(() => null));
+      setVocabularyKey((k) => k + 1);
+      setSaved(false);
+    } catch (e) {
+      setError(messageOf(e));
     }
   };
 
   const { mode, threshold_ms, chord } = settings.summon;
+  const device = settings.microphone?.device ?? null;
+  const modelId = settings.llm?.model_id ?? null;
+  const chosenModel = models.find((m) => m.id === modelId);
+  const deviceMissing = device !== null && !devices.some((d) => d.name === device);
+
   return (
     <section className="settings" aria-label="Settings">
       <header className="about-header">
@@ -73,46 +154,133 @@ export function SettingsView({
               type="radio"
               name="summon-mode"
               checked={mode === value}
-              onChange={() => update({ mode: value })}
+              onChange={() => updateSummon({ mode: value })}
             />{" "}
             {label}
           </label>
         ))}
+        {mode === "longpress-y" ? (
+          <>
+            <label className="settings-row">
+              Hold time: {threshold_ms} ms
+              <input
+                type="range"
+                aria-label="Hold time in milliseconds"
+                min={MIN_THRESHOLD_MS}
+                max={MAX_THRESHOLD_MS}
+                step={50}
+                value={threshold_ms}
+                onChange={(e) => updateSummon({ threshold_ms: Number(e.target.value) })}
+              />
+            </label>
+            <HoldTest thresholdMs={threshold_ms} />
+          </>
+        ) : (
+          <label className="settings-row">
+            Shortcut
+            <input
+              type="text"
+              aria-label="Shortcut"
+              value={chord}
+              onChange={(e) => updateSummon({ chord: e.target.value })}
+            />
+          </label>
+        )}
       </fieldset>
 
-      {mode === "longpress-y" ? (
+      <fieldset className="settings-group">
+        <legend>Microphone</legend>
         <label className="settings-row">
-          Hold time: {threshold_ms} ms
-          <input
-            type="range"
-            aria-label="Hold time in milliseconds"
-            min={MIN_THRESHOLD_MS}
-            max={MAX_THRESHOLD_MS}
-            step={50}
-            value={threshold_ms}
-            onChange={(e) => update({ threshold_ms: Number(e.target.value) })}
-          />
+          Record from
+          <select
+            aria-label="Microphone"
+            value={device ?? ""}
+            onChange={(e) =>
+              change({ ...settings, microphone: { device: e.target.value || null } })
+            }
+          >
+            <option value="">System default</option>
+            {deviceMissing && <option value={device ?? ""}>{device} (not connected)</option>}
+            {devices.map((d) => (
+              <option key={d.name} value={d.name}>
+                {d.name}
+                {d.is_default ? " (default)" : ""}
+              </option>
+            ))}
+          </select>
         </label>
-      ) : (
-        <label className="settings-row">
-          Shortcut
-          <input
-            type="text"
-            aria-label="Shortcut"
-            value={chord}
-            onChange={(e) => update({ chord: e.target.value })}
-          />
-        </label>
-      )}
+        {deviceMissing && (
+          <p className="settings-help" role="status">
+            That microphone is not connected, so the system default is used.
+          </p>
+        )}
+      </fieldset>
 
-      <label className="settings-row">
-        <input
-          type="checkbox"
-          checked={settings.finalPass.enabled}
-          onChange={(e) => setFinalPass(e.target.checked)}
-        />
-        Polish the transcript after recording (more accurate, a few seconds slower)
-      </label>
+      <fieldset className="settings-group">
+        <legend>Language model</legend>
+        <label className="settings-row">
+          Write prompts with
+          <select
+            aria-label="Language model"
+            value={modelId ?? ""}
+            onChange={(e) => change({ ...settings, llm: { model_id: e.target.value || null } })}
+          >
+            <option value="">Automatic (best for this computer)</option>
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.tag} · {gbText(m.size_bytes)}
+                {m.recommended ? " · recommended" : ""}
+                {m.fits ? "" : " · may not fit"}
+              </option>
+            ))}
+          </select>
+        </label>
+        {chosenModel && !chosenModel.tested && (
+          <p className="settings-help">This model has not been tested with Yadi yet.</p>
+        )}
+        {chosenModel?.warning && (
+          <p className="settings-error" role="alert">
+            {chosenModel.warning}
+          </p>
+        )}
+        {chosenModel && modelInstalled === false && (
+          <p className="settings-help" role="status">
+            This model is not downloaded yet.{" "}
+            {onRerunSetup && (
+              <button type="button" onClick={() => onRerunSetup(false)}>
+                Download it
+              </button>
+            )}
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset className="settings-group">
+        <legend>General</legend>
+        <label className="settings-row">
+          <input
+            type="checkbox"
+            checked={settings.finalPass.enabled}
+            onChange={(e) =>
+              change({
+                ...settings,
+                finalPass: { ...settings.finalPass, enabled: e.target.checked },
+              })
+            }
+          />
+          Polish the transcript after recording (more accurate, a few seconds slower)
+        </label>
+        {autostart !== null && (
+          <label className="settings-row">
+            <input
+              type="checkbox"
+              checked={autostart}
+              onChange={(e) => void toggleAutostart(e.target.checked)}
+            />
+            Start Yadi when I log in
+          </label>
+        )}
+      </fieldset>
 
       {error && (
         <p className="settings-error" role="alert">
@@ -124,23 +292,51 @@ export function SettingsView({
         Save
       </button>
 
-      {onRerunSetup && (
-        <fieldset className="settings-group">
-          <legend>Setup</legend>
-          <div className="settings-row">
-            <button type="button" onClick={() => onRerunSetup(false)}>
-              Re-run setup
+      <VocabularyEditor reloadKey={vocabularyKey} />
+
+      <fieldset className="settings-group">
+        <legend>Setup and about</legend>
+        <div className="settings-row">
+          {onRerunSetup && (
+            <>
+              <button type="button" onClick={() => onRerunSetup(false)}>
+                Re-run setup
+              </button>
+              <button
+                type="button"
+                onClick={() => onRerunSetup(true)}
+                title="Downloads the models again"
+              >
+                Repair models
+              </button>
+            </>
+          )}
+          {onOpenAbout && (
+            <button type="button" onClick={onOpenAbout}>
+              About and licences
             </button>
-            <button
-              type="button"
-              onClick={() => onRerunSetup(true)}
-              title="Downloads the models again"
-            >
-              Repair models
+          )}
+        </div>
+      </fieldset>
+
+      <fieldset className="settings-group">
+        <legend>Reset</legend>
+        {confirmReset ? (
+          <div className="settings-row" role="alertdialog" aria-label="Confirm reset">
+            <span>Reset all settings and delete your words? Downloaded models are kept.</span>
+            <button type="button" onClick={() => void resetEverything()}>
+              Yes, reset everything
+            </button>
+            <button type="button" onClick={() => setConfirmReset(false)}>
+              Cancel
             </button>
           </div>
-        </fieldset>
-      )}
+        ) : (
+          <button type="button" onClick={() => setConfirmReset(true)}>
+            Reset everything
+          </button>
+        )}
+      </fieldset>
     </section>
   );
 }

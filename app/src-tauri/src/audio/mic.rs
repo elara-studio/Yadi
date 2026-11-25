@@ -17,6 +17,8 @@ use super::{AudioError, AudioErrorKind, AudioSource, CHUNK_SAMPLES, Msg};
 
 #[derive(Default)]
 pub struct MicSource {
+    /// The microphone the user chose in Settings; `None` = the system default.
+    device_name: Option<String>,
     stop_tx: Option<mpsc::Sender<()>>,
     thread: Option<JoinHandle<()>>,
 }
@@ -25,6 +27,57 @@ impl MicSource {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Records from the named microphone if it is connected, otherwise from the default one.
+    pub fn with_device(device_name: Option<String>) -> Self {
+        Self {
+            device_name,
+            ..Self::default()
+        }
+    }
+}
+
+/// One entry of the microphone list in Settings.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct InputDevice {
+    pub name: String,
+    pub is_default: bool,
+}
+
+fn device_name(device: &cpal::Device) -> Option<String> {
+    device.description().ok().map(|d| d.name().to_string())
+}
+
+/// The connected input devices, the system default marked. Empty when none can be listed.
+pub fn list_input_devices() -> Vec<InputDevice> {
+    let host = cpal::default_host();
+    let default = host.default_input_device().and_then(|d| device_name(&d));
+    let mut out: Vec<InputDevice> = Vec::new();
+    for name in host
+        .input_devices()
+        .into_iter()
+        .flatten()
+        .filter_map(|d| device_name(&d))
+    {
+        if !out.iter().any(|d| d.name == name) {
+            out.push(InputDevice {
+                is_default: default.as_deref() == Some(name.as_str()),
+                name,
+            });
+        }
+    }
+    out
+}
+
+/// The name to open: the requested one if it is among the connected devices, else `None`
+/// (meaning the system default). A microphone that was unplugged therefore never blocks recording.
+pub fn pick_device<'a>(requested: Option<&'a str>, available: &[String]) -> Option<&'a str> {
+    requested.filter(|r| available.iter().any(|a| a == r))
+}
+
+#[tauri::command]
+pub fn audio_list_devices() -> Vec<InputDevice> {
+    list_input_devices()
 }
 
 fn cpal_error(e: &cpal::Error) -> Option<AudioError> {
@@ -129,14 +182,32 @@ where
 fn open_stream(
     out: Arc<ChunkQueue>,
     pipeline_slot: &mut Option<SharedPipeline>,
+    wanted: Option<&str>,
 ) -> Result<cpal::Stream, AudioError> {
     let host = cpal::default_host();
-    let device = host.default_input_device().ok_or_else(|| {
-        AudioError::new(
-            AudioErrorKind::NoDevice,
-            "No microphone was found. Connect one and try again.",
-        )
-    })?;
+    let available: Vec<String> = host
+        .input_devices()
+        .into_iter()
+        .flatten()
+        .filter_map(|d| device_name(&d))
+        .collect();
+    let chosen = pick_device(wanted, &available).and_then(|name| {
+        host.input_devices()
+            .into_iter()
+            .flatten()
+            .find(|d| device_name(d).as_deref() == Some(name))
+    });
+    if wanted.is_some() && chosen.is_none() {
+        log::info!("the chosen microphone is not connected; using the default one");
+    }
+    let device = chosen
+        .or_else(|| host.default_input_device())
+        .ok_or_else(|| {
+            AudioError::new(
+                AudioErrorKind::NoDevice,
+                "No microphone was found. Connect one and try again.",
+            )
+        })?;
     let supported = device.default_input_config().map_err(|e| {
         AudioError::new(
             AudioErrorKind::NoDevice,
@@ -180,11 +251,12 @@ impl AudioSource for MicSource {
         }
         let (ready_tx, ready_rx) = mpsc::sync_channel::<Result<(), AudioError>>(1);
         let (stop_tx, stop_rx) = mpsc::channel::<()>();
+        let wanted = self.device_name.clone();
         let thread = thread::Builder::new()
             .name("yadi-mic".into())
             .spawn(move || {
                 let mut pipeline = None;
-                match open_stream(out.clone(), &mut pipeline) {
+                match open_stream(out.clone(), &mut pipeline, wanted.as_deref()) {
                     Ok(stream) => {
                         let _ = ready_tx.send(Ok(()));
                         // Keep the stream alive until asked to stop (or the owner is gone).
@@ -225,5 +297,38 @@ impl AudioSource for MicSource {
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
+    }
+}
+
+#[cfg(test)]
+mod device_tests {
+    use super::pick_device;
+
+    fn list(names: &[&str]) -> Vec<String> {
+        names.iter().map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn a_connected_microphone_is_used() {
+        assert_eq!(
+            pick_device(Some("USB Mic"), &list(&["Built-in", "USB Mic"])),
+            Some("USB Mic")
+        );
+    }
+
+    #[test]
+    fn an_unplugged_microphone_falls_back_to_the_default() {
+        assert_eq!(pick_device(Some("USB Mic"), &list(&["Built-in"])), None);
+        assert_eq!(pick_device(Some("USB Mic"), &[]), None);
+    }
+
+    #[test]
+    fn no_choice_means_the_default() {
+        assert_eq!(pick_device(None, &list(&["Built-in"])), None);
+    }
+
+    #[test]
+    fn names_must_match_exactly() {
+        assert_eq!(pick_device(Some("usb mic"), &list(&["USB Mic"])), None);
     }
 }

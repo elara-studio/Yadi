@@ -9,6 +9,7 @@ mod settings;
 mod setup;
 mod stt;
 mod tiers;
+mod vocabulary;
 mod windows;
 
 use tauri_plugin_log::{Target, TargetKind};
@@ -28,6 +29,13 @@ pub fn run() {
         // HTTP for the prompt pipeline (Task 16). Its allow-list is limited to Ollama on localhost
         // in capabilities/default.json.
         .plugin(tauri_plugin_http::init())
+        // Launch at login (Settings; off by default) and the file dialogs for importing and
+        // exporting the vocabulary.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
+        .plugin(tauri_plugin_dialog::init())
         .manage(audio::commands::AudioState::default())
         .manage(models::DownloadState::default())
         .manage(stt::commands::SttState::default())
@@ -41,6 +49,14 @@ pub fn run() {
             windows::show_context_menu,
             settings::get_settings,
             settings::set_settings,
+            settings::reset_everything,
+            vocabulary::get_vocabulary,
+            vocabulary::set_vocabulary,
+            vocabulary::add_vocabulary,
+            vocabulary::vocabulary_import,
+            vocabulary::vocabulary_export,
+            audio::mic::audio_list_devices,
+            tiers::llm_options_list,
             audio::commands::audio_start,
             audio::commands::audio_stop,
             audio::commands::audio_clear,

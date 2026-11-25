@@ -75,6 +75,17 @@ describe("runPipeline", () => {
     }
   });
 
+  it("a vocabulary entry changes the Stage 1 prompt text (and its absence leaves it out)", async () => {
+    const without = new FakeLlmClient([normalizeReply, analysisReply()]);
+    await run(without);
+    const withWord = new FakeLlmClient([normalizeReply, analysisReply()]);
+    await run(withWord, { vocabulary: ["Zorblax"] });
+    const text = (llm: FakeLlmClient) => llm.requests[0]!.messages.map((m) => m.content).join("\n");
+    expect(text(withWord)).toContain("Zorblax");
+    expect(text(without)).not.toContain("Zorblax");
+    expect(text(withWord)).not.toBe(text(without));
+  });
+
   it("injects the vocabulary as preferred spellings (trimmed, unique, capped) into Stage 1 only", async () => {
     const llm = new FakeLlmClient([normalizeReply, analysisReply()]);
     await run(llm, { vocabulary: [" Hilt ", "hilt", "Kotlin", ""] });

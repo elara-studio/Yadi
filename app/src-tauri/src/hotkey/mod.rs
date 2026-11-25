@@ -45,6 +45,11 @@ fn summon_fn(app: &AppHandle) -> SummonFn {
     })
 }
 
+/// Hands the (already clamped) hold time to the long-press detector.
+pub fn apply_threshold(shared: &hook::Shared, settings: &Settings) {
+    shared.set_threshold(settings.summon.threshold_ms);
+}
+
 /// Makes the OS-level summon match `settings`. Never panics. In long-press mode it installs
 /// the keyboard hook (needs macOS permissions) and drops the chord; in chord mode it switches
 /// the hook off and registers the chord. On error nothing was changed for the failing side.
@@ -69,7 +74,7 @@ pub fn apply(app: &AppHandle, settings: &Settings) -> Result<(), String> {
             state
                 .ensure_started(summon_fn(app))
                 .map_err(|e: HookError| e.to_string())?;
-            state.shared.set_threshold(settings.summon.threshold_ms);
+            apply_threshold(&state.shared, settings);
             chord::apply(app, settings)?; // unregisters any chord
             state.shared.set_enabled(true);
             Ok(())

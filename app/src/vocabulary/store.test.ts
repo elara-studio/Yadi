@@ -1,19 +1,43 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { addVocabulary, clearVocabulary, getVocabulary } from "./store";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-describe("vocabulary stub", () => {
-  beforeEach(clearVocabulary);
+const invoke = vi.fn();
+vi.mock("@tauri-apps/api/core", () => ({ invoke }));
+const { addVocabulary, clearVocabulary, getVocabulary, loadVocabulary } = await import("./store");
 
-  it("adds words and returns them", () => {
-    expect(addVocabulary("Kotlin")).toBe(true);
-    expect(addVocabulary("  Hilt  ")).toBe(true);
-    expect(getVocabulary()).toEqual(["Kotlin", "Hilt"]);
+beforeEach(() => {
+  clearVocabulary();
+  invoke.mockReset();
+  invoke.mockResolvedValue(undefined);
+});
+
+describe("vocabulary store", () => {
+  it("adds trimmed words, once, ignoring case", () => {
+    expect(addVocabulary("  Kubernetes ")).toBe(true);
+    expect(addVocabulary("kubernetes")).toBe(false);
+    expect(addVocabulary("   ")).toBe(false);
+    expect(getVocabulary()).toEqual(["Kubernetes"]);
   });
 
-  it("ignores empty text and duplicates regardless of case", () => {
-    addVocabulary("Kotlin");
-    expect(addVocabulary("kotlin")).toBe(false);
-    expect(addVocabulary("   ")).toBe(false);
-    expect(getVocabulary()).toEqual(["Kotlin"]);
+  it("saves a new word through to Rust, and nothing for a repeat", () => {
+    addVocabulary("Yadi");
+    addVocabulary("yadi");
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledWith("add_vocabulary", { word: "Yadi" });
+  });
+
+  it("a failing save never breaks typing", () => {
+    invoke.mockRejectedValue(new Error("disk full"));
+    expect(addVocabulary("Yadi")).toBe(true);
+    invoke.mockImplementation(() => {
+      throw new Error("not in tauri");
+    });
+    expect(addVocabulary("Elara")).toBe(true);
+    expect(getVocabulary()).toEqual(["Yadi", "Elara"]);
+  });
+
+  it("loads the saved list from Rust", async () => {
+    invoke.mockResolvedValue(["Yadi", "Ollama"]);
+    expect(await loadVocabulary()).toEqual(["Yadi", "Ollama"]);
+    expect(addVocabulary("ollama")).toBe(false);
   });
 });
