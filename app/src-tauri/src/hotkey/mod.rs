@@ -104,6 +104,10 @@ pub fn fallback_notice(chord: &str, permission_missing: bool) -> Notice {
 pub fn init(app: &AppHandle, settings: &Settings) {
     app.manage(HookState::new());
     app.manage(NoticeState::default());
+    #[cfg(target_os = "macos")]
+    if settings.summon.mode == SummonMode::LongpressY {
+        watch_permissions(app, settings);
+    }
     if let Err(reason) = apply(app, settings) {
         log::warn!("long-press hook unavailable ({reason}); using the chord fallback");
         let mut fallback = settings.clone();
@@ -117,6 +121,50 @@ pub fn init(app: &AppHandle, settings: &Settings) {
             .lock()
             .unwrap_or_else(|e| e.into_inner()) = Some(notice);
     }
+}
+
+/// True when a permission that was granted a moment ago is gone now.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn permission_lost(was_granted: bool, is_granted: bool) -> bool {
+    was_granted && !is_granted
+}
+
+/// macOS lets the user switch Accessibility / Input Monitoring off while Yadi runs; the keyboard
+/// hook then silently stops seeing keys. Watch for that and switch to the chord with a notice
+/// (the saved setting is not changed, so Hold-Y returns after the permission is back and Yadi is
+/// restarted). Nothing to watch on other systems.
+#[cfg(target_os = "macos")]
+fn watch_permissions(app: &AppHandle, settings: &Settings) {
+    let app = app.clone();
+    let chord_settings = {
+        let mut s = settings.clone();
+        s.summon.mode = SummonMode::Chord;
+        s
+    };
+    std::thread::Builder::new()
+        .name("yadi-permission-watch".into())
+        .spawn(move || {
+            let mut was_granted = permissions::status().all_granted();
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(3));
+                let granted = permissions::status().all_granted();
+                if permission_lost(was_granted, granted) {
+                    log::warn!("keyboard permission was switched off; using the chord instead");
+                    app.state::<HookState>().shared.set_enabled(false);
+                    if let Err(e) = chord::apply(&app, &chord_settings) {
+                        log::warn!("chord fallback could not be registered: {e}");
+                    }
+                    let notice = fallback_notice(&chord_settings.summon.chord, true);
+                    *app.state::<NoticeState>()
+                        .0
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner()) = Some(notice.clone());
+                    let _ = app.emit_to(crate::windows::CHAT_LABEL, "app:notice", notice);
+                }
+                was_granted = granted;
+            }
+        })
+        .ok();
 }
 
 #[tauri::command]
@@ -146,5 +194,13 @@ mod tests {
         let n = fallback_notice("Alt+Space", false);
         assert_eq!(n.action, None);
         assert!(n.message.contains("Alt+Space"));
+    }
+
+    #[test]
+    fn only_a_granted_permission_that_disappears_counts_as_lost() {
+        assert!(permission_lost(true, false));
+        assert!(!permission_lost(true, true));
+        assert!(!permission_lost(false, false)); // never had it: the startup fallback handled that
+        assert!(!permission_lost(false, true)); // just granted
     }
 }

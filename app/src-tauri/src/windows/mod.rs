@@ -148,10 +148,33 @@ fn place_chat(app: &AppHandle, mascot: &WebviewWindow, chat: &WebviewWindow) -> 
     chat.set_position(PhysicalPosition::new(x, y)).map_err(err)
 }
 
+/// If the screen layout changed while Yadi was running (a monitor unplugged, a resolution change),
+/// the mascot may now be off every screen: bring it back. Called whenever the chat is shown.
+fn keep_mascot_on_screen(app: &AppHandle, mascot: &WebviewWindow) {
+    let (Ok(pos), Ok(size)) = (mascot.outer_position(), mascot.outer_size()) else {
+        return;
+    };
+    let monitors: Vec<Rect> = app
+        .available_monitors()
+        .unwrap_or_default()
+        .iter()
+        .map(monitor_rect)
+        .collect();
+    let primary = primary_rect(app, &monitors);
+    let size = (size.width as i32, size.height as i32);
+    let (x, y) = clamp_to_monitors((pos.x, pos.y), size, &monitors, primary);
+    if (x, y) != (pos.x, pos.y) {
+        log::info!("the mascot was off screen; moved back");
+        let _ = mascot.set_position(PhysicalPosition::new(x, y));
+        save_position(app, PhysicalPosition::new(x, y));
+    }
+}
+
 #[tauri::command]
 pub fn show_chat(app: AppHandle) -> Result<(), String> {
     let mascot = window(&app, MASCOT_LABEL)?;
     let chat = window(&app, CHAT_LABEL)?;
+    keep_mascot_on_screen(&app, &mascot);
     place_chat(&app, &mascot, &chat)?;
     chat.show().map_err(|e| e.to_string())?;
     chat.set_focus().map_err(|e| e.to_string())

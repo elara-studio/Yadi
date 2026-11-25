@@ -62,6 +62,18 @@ impl std::fmt::Display for DownloadError {
 
 impl std::error::Error for DownloadError {}
 
+/// What a failed file operation means to the user. A full disk gets a plain explanation: the
+/// partial file is kept, so the download continues where it stopped once space is freed.
+fn io_failure(what: &str, e: &std::io::Error) -> DownloadError {
+    if e.kind() == std::io::ErrorKind::StorageFull {
+        return DownloadError::Failed(
+            "The disk is full. Free some space and try again; the download continues where it stopped."
+                .to_string(),
+        );
+    }
+    DownloadError::Failed(format!("{what}: {e}"))
+}
+
 /// An attempt failed in a way worth retrying (the `.part` file is kept so the retry resumes).
 enum Attempt {
     Retry(String),
@@ -228,9 +240,7 @@ impl Downloader {
         on_progress: &mut dyn FnMut(u64, Option<u64>),
         cancel: &CancelToken,
     ) -> Result<(), Attempt> {
-        let io = |what: &str, e: std::io::Error| {
-            Attempt::Fatal(DownloadError::Failed(format!("{what}: {e}")))
-        };
+        let io = |what: &str, e: std::io::Error| Attempt::Fatal(io_failure(what, &e));
 
         let mut existing = fs::metadata(part).map(|m| m.len()).unwrap_or(0);
         let mut request = self.client.get(url);
@@ -764,5 +774,18 @@ mod tests {
         assert_eq!(server.requests().len(), 1);
         assert_eq!(last, (30_000, Some(30_000)));
         assert!(!part_path(&dest).exists());
+    }
+
+    #[test]
+    fn a_full_disk_is_explained_in_plain_words_and_other_errors_keep_their_detail() {
+        use std::io::{Error, ErrorKind};
+        let full = io_failure("write", &Error::from(ErrorKind::StorageFull)).to_string();
+        assert!(
+            full.contains("disk is full") && full.contains("continues where it stopped"),
+            "{full}"
+        );
+        assert!(!full.contains("os error"), "{full}");
+        let other = io_failure("write", &Error::from(ErrorKind::PermissionDenied)).to_string();
+        assert!(other.starts_with("Download failed: write:"), "{other}");
     }
 }

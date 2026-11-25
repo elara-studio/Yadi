@@ -10,3 +10,4 @@ eval/cases.jsonl
 eval/results
 docs
 eval/README.md
+.venv

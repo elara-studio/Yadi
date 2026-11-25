@@ -21,8 +21,8 @@ pub fn extract(bytes: &[u8]) -> Result<String, AttachmentError> {
     });
     match rx.recv_timeout(Duration::from_secs(PDF_TIMEOUT_SECS)) {
         Ok(Ok(text)) => Ok(text),
-        Ok(Err(e)) => {
-            log::warn!("pdf extraction failed: {e}"); // the library's message has no file content
+        Ok(Err(_)) => {
+            log::warn!("pdf extraction failed"); // nothing about the file goes to the log
             Err(AttachmentError::new(
                 ErrorKind::Unreadable,
                 "This PDF could not be read (it may be password-protected or damaged).",

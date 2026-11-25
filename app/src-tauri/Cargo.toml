@@ -44,6 +44,7 @@ pdf-extract = "0.12.1"
 quick-xml = "0.42.0"
 tauri-plugin-autostart = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-graphics = "0.25"

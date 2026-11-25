@@ -1033,3 +1033,14 @@ describe("attachments in the processing flow", () => {
     expect(ports.clearAttachments).not.toHaveBeenCalled();
   });
 });
+
+describe("privacy of the diagnostic log", () => {
+  it("an unknown app:event is logged without any of its text fields", () => {
+    const { controller, ports } = setup();
+    controller.handleAppEvent({ type: "WHAT", text: "my landlord is awful", prompt: "Task: x" });
+    const line = (ports.log as ReturnType<typeof vi.fn>).mock.calls.flat().join("\n");
+    expect(line).toContain("ignored unknown app:event");
+    expect(line).toContain("WHAT");
+    expect(line).not.toMatch(/landlord|Task: x/);
+  });
+});

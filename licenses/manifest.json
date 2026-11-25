@@ -103,10 +103,11 @@
     "name": "ONNX Runtime (statically linked inside the sherpa-onnx prebuilt libraries)",
     "kind": "runtime",
     "version": "as built into sherpa-onnx v2.0.3 (libonnxruntime.a)",
-    "license_spdx": "UNVERIFIED",
-    "license_url": "UNVERIFIED",
-    "attribution": "NOT YET VERIFIED. libonnxruntime.a is inside the sherpa-onnx static-library archives the app links. On 2026-11-24 github.com/microsoft/onnxruntime returned HTTP 404 (repository page, API and raw LICENSE), the archives contain no licence file, so the licence could not be read from a primary source. Verify and add the real notice before any release (PLAN Task 23).",
-    "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.3/sherpa-onnx-v2.0.3-osx-arm64-static-lib.tar.bz2"
+    "license_spdx": "MIT",
+    "license_url": "https://pypi.org/project/onnxruntime/",
+    "attribution": "Copyright (c) Microsoft Corporation. Read on 2026-11-25 from the LICENSE and ThirdPartyNotices.txt inside the official onnxruntime 1.32.0 wheel on PyPI (project page onnxruntime.ai; the npm package onnxruntime-node also declares MIT). The ONNX Runtime version linked inside sherpa-onnx v2.0.3 was not inspected separately; confirm the notices match before a release. github.com/microsoft/onnxruntime returned HTTP 404 on both days, so the repository itself could not be read.",
+    "source_url": "https://files.pythonhosted.org/packages/b7/5d/50be370b540a6cb9ea173503f5418e8315dfe5757400ad7720542d348b94/onnxruntime-1.32.0-cp311-cp311-macosx_14_0_arm64.whl",
+    "notice_file": "texts/onnxruntime-LICENSE.txt"
   },
   {
     "id": "granite4-3b",

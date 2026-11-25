@@ -12,11 +12,21 @@ mod tiers;
 mod vocabulary;
 mod windows;
 
+#[cfg(test)]
+mod privacy;
+
 use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Must be the first plugin. A second launch (double-click, login item plus manual start)
+        // brings the first Yadi forward instead of starting another mascot.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            use tauri::Emitter;
+            log::info!("a second Yadi was started; bringing the first one forward");
+            let _ = app.emit_to(windows::MASCOT_LABEL, "hotkey:summon", ());
+        }))
         // Log to stdout only. Never log transcripts, audio or prompts (decision D12).
         .plugin(
             tauri_plugin_log::Builder::new()

@@ -14,6 +14,7 @@ import {
   estimateTokens,
   initialModel,
   parseAttachmentMeta,
+  redactForLog,
   transition,
 } from "@yadi/core";
 import type { MascotState } from "../../components/Mascot";
@@ -313,7 +314,7 @@ export class Controller {
       return;
     }
     if (!EVENT_TYPES.has(type)) {
-      this.ports.log(`ignored unknown app:event "${type}"`);
+      this.ports.log(`ignored unknown app:event ${redactForLog(payload)}`);
       return;
     }
     this.dispatch(payload as AppEvent);

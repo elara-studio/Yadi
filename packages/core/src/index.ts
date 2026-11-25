@@ -10,3 +10,4 @@ export * from "./transcript";
 export * from "./setup";
 export * from "./pipeline";
 export * from "./attachments";
+export * from "./privacy";
