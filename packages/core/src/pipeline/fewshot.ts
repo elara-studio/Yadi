@@ -119,4 +119,38 @@ export const FEWSHOT_EXAMPLES: FewShot[] = [
       missing_info: [],
     },
   },
+  {
+    cleanText: "How do I make a Flutter button show a loading spinner while an API call runs?",
+    analysis: {
+      task_type: "coding",
+      task: "Explain how to show a loading spinner on a Flutter button during an API call.",
+      role: { value: "Flutter developer", evidence: "Flutter button" },
+      context: [
+        { text: "It is a Flutter app", evidence: "Flutter button" },
+        { text: "The button should show a loading spinner", evidence: "show a loading spinner" },
+        { text: "An API call is running", evidence: "while an API call runs" },
+      ],
+      constraints: [],
+      output_format: null,
+      missing_info: [],
+    },
+  },
+  {
+    cleanText:
+      "Create a Bash script that backs up my home folder to an external drive every night.",
+    analysis: {
+      task_type: "coding",
+      task: "Write a Bash script that backs up the home folder to an external drive every night.",
+      role: null,
+      context: [
+        { text: "The script is written in Bash", evidence: "Bash script" },
+        { text: "The folder to back up is the home folder", evidence: "my home folder" },
+        { text: "The backup goes to an external drive", evidence: "to an external drive" },
+        { text: "It runs every night", evidence: "every night" },
+      ],
+      constraints: [],
+      output_format: null,
+      missing_info: [],
+    },
+  },
 ];

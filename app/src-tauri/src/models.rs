@@ -408,12 +408,12 @@ mod tests {
                 "{}",
                 m.id
             );
-            assert_eq!(
-                m.status.as_deref(),
-                Some("untested"),
-                "{} stays untested until Task 17",
-                m.id
-            );
+            // "tested" only once the eval has scored it, and then its notes say how it scored.
+            match m.status.as_deref() {
+                Some("untested") => {}
+                Some("tested") => assert!(m.notes.contains("Eval ("), "{} has no score", m.id),
+                other => panic!("{}: unexpected status {other:?}", m.id),
+            }
         }
         assert!(c.models.iter().all(|m| !m.license_id.is_empty()));
         let tiers: Vec<&str> = c.llm_tiers.iter().map(|t| t.id.as_str()).collect();

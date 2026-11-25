@@ -15,9 +15,9 @@ const evalTranscripts: string[] = readFileSync(join(here, "../../../../eval/case
   .map((l) => (JSON.parse(l) as { transcript: string }).transcript);
 
 describe("few-shot examples", () => {
-  it("there are between 4 and 6", () => {
+  it("there are between 4 and 8", () => {
     expect(FEWSHOT_EXAMPLES.length).toBeGreaterThanOrEqual(4);
-    expect(FEWSHOT_EXAMPLES.length).toBeLessThanOrEqual(6);
+    expect(FEWSHOT_EXAMPLES.length).toBeLessThanOrEqual(8);
   });
 
   it("every piece of evidence is an exact quote of its example's text", () => {

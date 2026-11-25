@@ -128,12 +128,12 @@ const ANALYZE_SYSTEM = [
   "",
   "Fields:",
   "- task_type: coding, debugging, writing, editing, explanation, analysis, planning, math, data, question or other.",
-  "- task: one short imperative sentence saying what the person wants done, in their own terms.",
+  "- task: one short imperative sentence with the action the person wants done, in their own terms.",
   "- role: the expert the assistant should act as, ONLY if the person said it or it is plainly implied by what they are doing. Otherwise null.",
-  "- context: facts the person gave that the assistant needs.",
+  "- context: ALWAYS list the concrete details the person mentioned, one short item (under 12 words) each: the language, framework, platform or tool, what the thing must do, who or what it is for, the symptom, what they already tried. Details may also appear in the task sentence; list them here anyway. An empty list only when the person gave no detail at all.",
   "- constraints: requirements and limits the person stated (length, tone, language, tools, deadlines...).",
   "- output_format: the form of answer the person asked for, or null.",
-  "- missing_info: up to 3 short questions about details that are needed but were not given. An empty list when the request stands on its own.",
+  "- missing_info: up to 3 short questions, ONLY about details the assistant cannot do without and the person did not give (for example the table names for a SQL query, or what a vague request is about). When the request names what to build or explain and the tools involved, return an empty list []. Never ask about preferences, styling, edge cases or anything the assistant can decide itself. When in doubt, return [].",
   "",
   "Hard rules:",
   '- Every item has "evidence": an exact quote copied from the cleaned request. No quote, no item.',
@@ -163,6 +163,9 @@ export function analyzeUserMessage(cleanText: string, attachments: readonly Atta
       }
     }
   }
+  parts.push(
+    "Reminder: list each concrete detail the person gave as its own context item with an exact quote as evidence, and return missing_info [] unless something essential is absent.",
+  );
   return parts.join("\n");
 }
 

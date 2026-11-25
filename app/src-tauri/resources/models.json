@@ -63,8 +63,8 @@
       "size_bytes": 2099520968,
       "license_id": "granite4-3b",
       "min_ram_gb": 8,
-      "status": "untested",
-      "notes": "IBM Granite 4.0 Micro (3B). Low tier (8 GB). Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+      "status": "tested",
+      "notes": "IBM Granite 4.0 Micro (3B). Low tier (8 GB). Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24. Eval (Task 18, 42 cases, tuned prompts, judge qwen3:8b): mean 0.833, hold-out 0.800, median 3.0 s per prompt on an Apple Silicon Mac with 18 GB. Recommended pending user review; the tier assignment is not decided."
     },
     {
       "id": "llm-qwen3-4b-instruct-2507",
@@ -73,8 +73,8 @@
       "size_bytes": 2497293316,
       "license_id": "qwen3-4b-instruct-2507",
       "min_ram_gb": 16,
-      "status": "untested",
-      "notes": "Qwen3-4B-Instruct-2507 (non-thinking), q4_K_M. Mid tier (16 GB). Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+      "status": "tested",
+      "notes": "Qwen3-4B-Instruct-2507 (non-thinking), q4_K_M. Mid tier (16 GB). Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24. Eval (Task 18, 42 cases, tuned prompts, judge qwen3:8b): mean 0.806, hold-out 0.729, median 4.9 s per prompt on an Apple Silicon Mac with 18 GB. Recommended pending user review; the tier assignment is not decided."
     },
     {
       "id": "llm-qwen3-8b",
@@ -83,8 +83,8 @@
       "size_bytes": 5225387677,
       "license_id": "qwen3-8b",
       "min_ram_gb": 32,
-      "status": "untested",
-      "notes": "Qwen3 8B. High tier (32 GB, or a dedicated GPU with 12 GB). Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+      "status": "tested",
+      "notes": "Qwen3 8B. High tier (32 GB, or a dedicated GPU with 12 GB). Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24. Eval (Task 18, 42 cases, tuned prompts, judge gemma3 (a different, weaker judge: not comparable with the others)): mean 0.769, hold-out 0.714, median 22.6 s per prompt on an Apple Silicon Mac with 18 GB. Recommended pending user review; the tier assignment is not decided."
     },
     {
       "id": "llm-qwen3-1-7b",
@@ -93,8 +93,8 @@
       "size_bytes": 1359292957,
       "license_id": "qwen3-1-7b",
       "min_ram_gb": 8,
-      "status": "untested",
-      "notes": "Qwen3 1.7B. Smaller alternative for the low tier; not assigned to a tier. Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+      "status": "tested",
+      "notes": "Qwen3 1.7B. Smaller alternative for the low tier; not assigned to a tier. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24. Eval (Task 18, 42 cases, tuned prompts, judge qwen3:8b): mean 0.793, hold-out 0.743, median 1.9 s per prompt on an Apple Silicon Mac with 18 GB. Recommended pending user review; the tier assignment is not decided."
     },
     {
       "id": "llm-phi4-mini",
@@ -103,8 +103,8 @@
       "size_bytes": 2491876363,
       "license_id": "phi4-mini",
       "min_ram_gb": 16,
-      "status": "untested",
-      "notes": "Microsoft Phi-4-mini (3.8B). Alternative mid-tier candidate; not assigned to a tier. Untested until the Task 17 eval. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24."
+      "status": "tested",
+      "notes": "Microsoft Phi-4-mini (3.8B). Alternative mid-tier candidate; not assigned to a tier. Exact size is the sum of the layers in the Ollama registry manifest (registry.ollama.ai/v2/library/<name>/manifests/<tag>), read 2026-11-24. Eval (Task 18, 42 cases, tuned prompts, judge qwen3:8b): mean 0.786, hold-out 0.786, median 12.2 s per prompt on an Apple Silicon Mac with 18 GB. Recommended pending user review; the tier assignment is not decided."
     },
     {
       "id": "llm-gemma4-e2b",

@@ -26,3 +26,123 @@ One block per run, newest last. Scores are the mean share of the 7 checks passed
 - Latency: p50 3362 ms, p95 5642 ms
 - Degraded prompts: 0 · judge failures: 0
 - Failures: and-01 [concise, clarify]; and-02 [concise, clarify, assumptions]; and-03 [concise, clarify]; and-04 [concise]; web-01 [concise, clarify]; web-02 [concise, assumptions]; web-03 [template, concise, assumptions]; data-01 [concise]; data-02 [concise, clarify, assumptions]; data-03 [concise]; wr-01 [concise, clarify]; wr-02 [concise]; wr-03 [concise, assumptions]; wr-04 [concise]; gen-01 [no_invention, concise]; gen-02 [concise]; gen-03 [concise, clarify, assumptions]; gen-04 [concise, clarify, assumptions]; gen-05 [concise, assumptions]; math-01 [concise, clarify]; math-02 [concise, assumptions]; corr-01 [retractions, concise, clarify]; corr-02 [concise, assumptions]; corr-03 [retractions, concise, clarify, assumptions]; filler-01 [concise, clarify]; filler-02 [no_invention, clarify]; ramble-01 [concise, assumptions]; ramble-02 [concise]; vague-01 [concise, assumptions]; vague-02 [no_invention, concise]; att-01 [concise, clarify, assumptions]; att-02 [concise, clarify]; tech-01 [concise]; tech-02 [concise, clarify]; tech-03 [concise, clarify, assumptions]; ml-01 [no_invention, concise, assumptions]; fmt-01 [concise, clarify]; fmt-02 [concise, assumptions]; good-01 [concise, clarify, assumptions]; sens-01 [no_invention, concise]; multi-01 [concise, assumptions]; lang-01 [concise]
+## 2026-11-25 · granite4:3b
+> Task 17 candidate run, judge qwen3:8b. Machine was also busy with other work, so latency is approximate.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.782** · hold-out 0.800 · tuning set 0.777
+- Per check: faithful 0.929, no_invention 0.976, retractions 1.000, template 0.643, concise 0.286, clarify 0.643, assumptions 1.000
+- Per category: already-good 0.714 (1), asr-errors 0.714 (4), attachment 0.786 (2), coding-android 0.762 (3), coding-backend 0.857 (1), coding-web 0.714 (2), constraints 0.714 (1), data 0.762 (3), data-ml 0.714 (1), filler-heavy 0.857 (2), format-request 0.857 (2), general 0.800 (5), long-ramble 0.857 (2), math 0.929 (2), multi-task 0.571 (1), self-correction 0.762 (3), sensitive 0.857 (1), vague 0.857 (2), writing 0.714 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.234 (approximate tokens)
+- Latency: p50 4267 ms, p95 9737 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise, clarify]; and-02 [template, clarify]; and-03 [template, concise, clarify]; and-04 [concise]; web-01 [template, concise, clarify]; web-02 [concise]; web-03 [concise]; data-01 [concise]; data-02 [concise, clarify]; data-03 [template, concise]; wr-01 [concise]; wr-02 [concise, clarify]; wr-03 [clarify]; wr-04 [faithful, template, concise]; gen-01 [template, concise]; gen-02 [concise]; gen-03 [concise]; gen-04 [concise, clarify]; gen-05 [concise]; math-01 [faithful]; corr-01 [template]; corr-02 [template, concise]; corr-03 [template, concise]; filler-01 [clarify]; filler-02 [clarify]; ramble-01 [concise]; ramble-02 [concise]; vague-01 [concise]; vague-02 [concise]; att-01 [concise]; att-02 [concise, clarify]; tech-01 [template, concise]; tech-03 [template, concise, clarify]; ml-01 [template, concise]; fmt-01 [template]; fmt-02 [template]; good-01 [template, clarify]; sens-01 [concise]; multi-01 [faithful, no_invention, clarify]; lang-01 [concise, clarify]
+## 2026-11-25 · qwen3:4b-instruct-2507-q4_K_M
+> Task 17 candidate run, judge qwen3:8b. Machine was also busy with other work, so latency is approximate.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.823** · hold-out 0.771 · tuning set 0.839
+- Per check: faithful 0.929, no_invention 1.000, retractions 0.976, template 0.929, concise 0.190, clarify 0.738, assumptions 1.000
+- Per category: already-good 0.714 (1), asr-errors 0.821 (4), attachment 0.714 (2), coding-android 0.857 (3), coding-backend 0.857 (1), coding-web 0.714 (2), constraints 0.857 (1), data 0.714 (3), data-ml 0.857 (1), filler-heavy 1.000 (2), format-request 0.857 (2), general 0.857 (5), long-ramble 0.857 (2), math 0.786 (2), multi-task 0.857 (1), self-correction 0.762 (3), sensitive 0.857 (1), vague 0.857 (2), writing 0.857 (2), writing-email 0.857 (2)
+- Mean token ratio (out/in): 3.646 (approximate tokens)
+- Latency: p50 9449 ms, p95 11894 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise, clarify]; and-03 [concise]; and-04 [concise]; web-01 [concise, clarify]; web-02 [template, concise]; web-03 [concise]; data-01 [faithful, concise, clarify]; data-02 [concise]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [concise]; wr-03 [concise]; wr-04 [concise]; gen-01 [concise]; gen-02 [concise]; gen-03 [concise]; gen-04 [faithful]; gen-05 [concise]; math-01 [faithful, template]; math-02 [clarify]; corr-02 [concise, clarify]; corr-03 [retractions, concise, clarify]; ramble-01 [concise]; ramble-02 [concise]; vague-01 [concise]; vague-02 [concise]; att-01 [concise, clarify]; att-02 [concise, clarify]; tech-01 [concise, clarify]; tech-02 [concise]; tech-03 [concise]; ml-01 [concise]; fmt-01 [template]; fmt-02 [concise]; good-01 [concise, clarify]; sens-01 [concise]; multi-01 [concise]; lang-01 [concise]
+## 2026-11-25 · qwen3:1.7b
+> Task 17 candidate run, judge qwen3:8b. Machine was also busy with other work, so latency is approximate.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.765** · hold-out 0.771 · tuning set 0.763
+- Per check: faithful 0.976, no_invention 1.000, retractions 0.905, template 0.905, concise 0.024, clarify 0.548, assumptions 1.000
+- Per category: already-good 0.714 (1), asr-errors 0.714 (4), attachment 0.714 (2), coding-android 0.667 (3), coding-backend 0.857 (1), coding-web 0.786 (2), constraints 0.857 (1), data 0.810 (3), data-ml 0.857 (1), filler-heavy 0.714 (2), format-request 0.786 (2), general 0.829 (5), long-ramble 0.857 (2), math 0.643 (2), multi-task 0.857 (1), self-correction 0.619 (3), sensitive 0.857 (1), vague 0.857 (2), writing 0.786 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 4.356 (approximate tokens)
+- Latency: p50 2642 ms, p95 7687 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [template, concise, clarify]; and-02 [retractions, concise, clarify]; and-03 [concise, clarify]; and-04 [concise]; web-01 [concise, clarify]; web-02 [concise]; web-03 [concise]; data-01 [faithful, concise]; data-02 [concise]; data-03 [concise]; wr-01 [concise, clarify]; wr-02 [concise]; wr-03 [concise, clarify]; wr-04 [concise]; gen-01 [concise]; gen-02 [concise]; gen-03 [concise]; gen-04 [concise, clarify]; gen-05 [concise]; math-01 [template, concise, clarify]; math-02 [concise, clarify]; corr-01 [retractions, concise, clarify]; corr-02 [retractions, concise]; corr-03 [retractions, concise, clarify]; filler-01 [concise, clarify]; filler-02 [concise, clarify]; ramble-01 [concise]; ramble-02 [concise]; vague-01 [concise]; vague-02 [concise]; att-01 [concise, clarify]; att-02 [concise, clarify]; tech-01 [concise]; tech-02 [concise, clarify]; tech-03 [template, concise, clarify]; ml-01 [concise]; fmt-01 [template, concise, clarify]; good-01 [concise, clarify]; sens-01 [concise]; multi-01 [concise]; lang-01 [concise]
+## 2026-11-25 · phi4-mini:3.8b
+> Task 17 candidate run, judge qwen3:8b. Machine was also busy with other work, so latency is approximate.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.799** · hold-out 0.757 · tuning set 0.813
+- Per check: faithful 0.929, no_invention 1.000, retractions 0.952, template 0.929, concise 0.262, clarify 0.524, assumptions 1.000
+- Per category: already-good 0.857 (1), asr-errors 0.821 (4), attachment 0.857 (2), coding-android 0.810 (3), coding-backend 0.714 (1), coding-web 0.857 (2), constraints 0.571 (1), data 0.762 (3), data-ml 0.714 (1), filler-heavy 1.000 (2), format-request 0.929 (2), general 0.771 (5), long-ramble 0.786 (2), math 0.714 (2), multi-task 0.857 (1), self-correction 0.714 (3), sensitive 0.857 (1), vague 0.857 (2), writing 0.714 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.465 (approximate tokens)
+- Latency: p50 12172 ms, p95 16460 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise, clarify]; and-03 [concise]; and-04 [concise, clarify]; web-02 [concise, clarify]; web-03 [concise, clarify]; data-01 [concise, clarify]; data-02 [concise]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [concise, clarify]; wr-03 [clarify]; wr-04 [faithful, concise, clarify]; gen-01 [concise, clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise, clarify]; math-01 [faithful, concise]; math-02 [concise, clarify]; corr-01 [retractions]; corr-02 [faithful, retractions, template, clarify]; corr-03 [concise]; ramble-01 [concise]; ramble-02 [concise, clarify]; vague-01 [concise]; vague-02 [concise]; att-01 [concise]; att-02 [concise]; tech-01 [concise, clarify]; tech-02 [concise]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-01 [concise]; good-01 [template]; sens-01 [clarify]; multi-01 [clarify]; lang-01 [template, concise, clarify]
+## 2026-11-25 · qwen3:8b
+> Task 17 candidate run, judge gemma3:latest. Machine was also busy with other work, so latency is approximate.
+
+- Judge: `gemma3:latest`
+- Cases: 42
+- **Mean score: 0.779** · hold-out 0.743 · tuning set 0.790
+- Per check: faithful 1.000, no_invention 0.857, retractions 0.929, template 0.929, concise 0.190, clarify 0.833, assumptions 0.714
+- Per category: already-good 0.714 (1), asr-errors 0.857 (4), attachment 0.643 (2), coding-android 0.857 (3), coding-backend 0.857 (1), coding-web 0.857 (2), constraints 0.857 (1), data 0.905 (3), data-ml 0.571 (1), filler-heavy 0.929 (2), format-request 0.714 (2), general 0.800 (5), long-ramble 0.714 (2), math 0.929 (2), multi-task 0.714 (1), self-correction 0.476 (3), sensitive 0.714 (1), vague 0.714 (2), writing 0.786 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.674 (approximate tokens)
+- Latency: p50 21485 ms, p95 29258 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise, clarify]; and-03 [concise]; and-04 [concise]; web-02 [concise, assumptions]; web-03 [concise]; data-01 [concise]; data-03 [concise]; wr-01 [no_invention, concise]; wr-02 [concise]; wr-03 [concise, assumptions]; wr-04 [concise]; gen-01 [concise, assumptions]; gen-02 [concise]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise, assumptions]; math-02 [clarify]; corr-01 [retractions, concise, clarify, assumptions]; corr-02 [retractions, concise]; corr-03 [retractions, template, concise, clarify, assumptions]; filler-02 [no_invention]; ramble-01 [concise, assumptions]; ramble-02 [no_invention, concise]; vague-01 [concise, assumptions]; vague-02 [concise, assumptions]; att-01 [concise, clarify, assumptions]; att-02 [concise, clarify]; tech-01 [concise]; tech-02 [concise]; tech-03 [concise]; ml-01 [no_invention, concise, assumptions]; fmt-01 [template]; fmt-02 [no_invention, template, concise]; good-01 [concise, clarify]; sens-01 [no_invention, concise]; multi-01 [concise, assumptions]; lang-01 [concise]
+## 2026-11-25 · granite4:3b
+> Task 18 FINAL run (all 42 cases, tuned prompts), judge qwen3:8b.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.833** · hold-out 0.800 · tuning set 0.844
+- Per check: faithful 0.976, no_invention 1.000, retractions 1.000, template 0.857, concise 0.452, clarify 0.548, assumptions 1.000
+- Per category: already-good 0.857 (1), asr-errors 0.857 (4), attachment 0.786 (2), coding-android 0.857 (3), coding-backend 0.714 (1), coding-web 0.786 (2), constraints 0.714 (1), data 0.857 (3), data-ml 0.714 (1), filler-heavy 1.000 (2), format-request 0.857 (2), general 0.800 (5), long-ramble 0.857 (2), math 0.857 (2), multi-task 0.857 (1), self-correction 0.905 (3), sensitive 0.857 (1), vague 0.786 (2), writing 0.786 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 2.846 (approximate tokens)
+- Latency: p50 2967 ms, p95 6604 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise]; and-03 [concise]; and-04 [concise, clarify]; web-01 [template]; web-02 [concise, clarify]; web-03 [concise, clarify]; data-01 [clarify]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [concise, clarify]; wr-03 [clarify]; wr-04 [template, concise]; gen-01 [template, clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise]; math-01 [faithful]; math-02 [clarify]; corr-02 [concise, clarify]; ramble-01 [clarify]; ramble-02 [clarify]; vague-01 [concise, clarify]; vague-02 [concise]; att-01 [concise]; att-02 [template, concise]; tech-01 [concise, clarify]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-01 [template]; fmt-02 [concise]; good-01 [template]; sens-01 [clarify]; multi-01 [clarify]; lang-01 [concise, clarify]
+## 2026-11-25 · qwen3:4b-instruct-2507-q4_K_M
+> Task 18 FINAL run (all 42 cases, tuned prompts), judge qwen3:8b.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.806** · hold-out 0.729 · tuning set 0.830
+- Per check: faithful 0.952, no_invention 0.952, retractions 0.976, template 0.976, concise 0.238, clarify 0.548, assumptions 1.000
+- Per category: already-good 0.857 (1), asr-errors 0.821 (4), attachment 0.714 (2), coding-android 0.905 (3), coding-backend 0.857 (1), coding-web 0.786 (2), constraints 0.714 (1), data 0.714 (3), data-ml 0.714 (1), filler-heavy 0.857 (2), format-request 0.929 (2), general 0.829 (5), long-ramble 0.714 (2), math 0.714 (2), multi-task 0.714 (1), self-correction 0.857 (3), sensitive 0.857 (1), vague 0.857 (2), writing 0.786 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.326 (approximate tokens)
+- Latency: p50 4894 ms, p95 11742 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-03 [concise]; and-04 [concise, clarify]; web-01 [concise]; web-02 [concise, clarify]; web-03 [clarify]; data-01 [faithful, no_invention, concise, clarify]; data-02 [concise]; data-03 [concise]; wr-01 [concise]; wr-02 [concise, clarify]; wr-03 [concise, clarify]; wr-04 [concise]; gen-01 [concise, clarify]; gen-02 [clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise]; math-01 [faithful, concise]; math-02 [concise, clarify]; corr-02 [clarify]; corr-03 [retractions, concise]; filler-01 [concise, clarify]; ramble-01 [no_invention, concise, clarify]; ramble-02 [concise]; vague-01 [concise]; vague-02 [concise]; att-01 [concise, clarify]; att-02 [concise, clarify]; tech-01 [concise, clarify]; tech-02 [concise]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-02 [concise]; good-01 [concise]; sens-01 [clarify]; multi-01 [concise, clarify]; lang-01 [template, clarify]
+## 2026-11-25 · qwen3:1.7b
+> Task 18 FINAL run (all 42 cases, tuned prompts), judge qwen3:8b.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.793** · hold-out 0.743 · tuning set 0.808
+- Per check: faithful 0.929, no_invention 0.929, retractions 0.905, template 0.976, concise 0.238, clarify 0.571, assumptions 1.000
+- Per category: already-good 0.857 (1), asr-errors 0.857 (4), attachment 0.857 (2), coding-android 0.810 (3), coding-backend 0.714 (1), coding-web 0.714 (2), constraints 0.714 (1), data 0.714 (3), data-ml 0.714 (1), filler-heavy 0.929 (2), format-request 0.857 (2), general 0.771 (5), long-ramble 0.857 (2), math 0.714 (2), multi-task 0.714 (1), self-correction 0.667 (3), sensitive 0.857 (1), vague 0.857 (2), writing 0.857 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.331 (approximate tokens)
+- Latency: p50 1900 ms, p95 3238 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-02 [retractions, concise]; and-03 [concise]; and-04 [concise, clarify]; web-01 [concise]; web-02 [no_invention, concise, clarify]; web-03 [concise, clarify]; data-01 [faithful, concise, clarify]; data-02 [concise]; data-03 [concise, clarify]; wr-01 [no_invention, concise]; wr-02 [clarify]; wr-03 [concise]; wr-04 [clarify]; gen-01 [concise, clarify]; gen-02 [faithful, concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise]; math-01 [faithful, template]; math-02 [concise, clarify]; corr-01 [retractions, concise]; corr-02 [retractions, concise, clarify]; corr-03 [retractions, concise]; filler-01 [concise]; ramble-01 [clarify]; ramble-02 [clarify]; vague-01 [concise]; vague-02 [concise]; att-01 [concise]; att-02 [concise]; tech-01 [concise, clarify]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-01 [concise]; fmt-02 [concise]; good-01 [concise]; sens-01 [clarify]; multi-01 [no_invention, clarify]; lang-01 [concise, clarify]
+## 2026-11-25 · phi4-mini:3.8b
+> Task 18 FINAL run (all 42 cases, tuned prompts), judge qwen3:8b.
+
+- Judge: `qwen3:8b`
+- Cases: 42
+- **Mean score: 0.786** · hold-out 0.786 · tuning set 0.786
+- Per check: faithful 0.881, no_invention 0.976, retractions 0.952, template 0.952, concise 0.238, clarify 0.500, assumptions 1.000
+- Per category: already-good 0.857 (1), asr-errors 0.821 (4), attachment 0.857 (2), coding-android 0.857 (3), coding-backend 0.714 (1), coding-web 0.786 (2), constraints 0.714 (1), data 0.762 (3), data-ml 0.714 (1), filler-heavy 1.000 (2), format-request 0.857 (2), general 0.743 (5), long-ramble 0.857 (2), math 0.786 (2), multi-task 0.571 (1), self-correction 0.667 (3), sensitive 0.857 (1), vague 0.714 (2), writing 0.714 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.092 (approximate tokens)
+- Latency: p50 12200 ms, p95 14469 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise]; and-03 [concise]; and-04 [concise, clarify]; web-01 [concise]; web-02 [concise, clarify]; web-03 [concise, clarify]; data-01 [concise, clarify]; data-02 [concise]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [faithful, clarify]; wr-03 [concise, clarify]; wr-04 [faithful, clarify]; gen-01 [concise, clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [faithful, concise]; gen-05 [concise, clarify]; math-01 [faithful]; math-02 [concise, clarify]; corr-01 [retractions, concise]; corr-02 [faithful, retractions, template, clarify]; corr-03 [concise]; ramble-01 [concise]; ramble-02 [clarify]; vague-01 [concise, clarify]; vague-02 [concise, clarify]; att-01 [concise]; att-02 [concise]; tech-01 [concise, clarify]; tech-02 [concise]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-01 [concise]; fmt-02 [concise]; good-01 [template]; sens-01 [clarify]; multi-01 [no_invention, concise, clarify]; lang-01 [concise, clarify]
+## 2026-11-25 · qwen3:8b
+> Task 18 FINAL run (all 42 cases, tuned prompts), judge gemma3:latest.
+
+- Judge: `gemma3:latest`
+- Cases: 42
+- **Mean score: 0.769** · hold-out 0.714 · tuning set 0.786
+- Per check: faithful 0.976, no_invention 0.857, retractions 0.929, template 1.000, concise 0.238, clarify 0.571, assumptions 0.810
+- Per category: already-good 0.857 (1), asr-errors 0.821 (4), attachment 0.643 (2), coding-android 0.857 (3), coding-backend 0.714 (1), coding-web 0.857 (2), constraints 0.714 (1), data 0.762 (3), data-ml 0.571 (1), filler-heavy 0.929 (2), format-request 0.786 (2), general 0.771 (5), long-ramble 0.786 (2), math 0.857 (2), multi-task 0.857 (1), self-correction 0.524 (3), sensitive 0.714 (1), vague 0.714 (2), writing 0.786 (2), writing-email 0.786 (2)
+- Mean token ratio (out/in): 3.328 (approximate tokens)
+- Latency: p50 22583 ms, p95 26987 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise]; and-03 [concise]; and-04 [concise, clarify]; web-02 [concise, clarify]; web-03 [concise, clarify]; data-01 [concise, clarify]; data-02 [assumptions]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [no_invention, clarify]; wr-03 [clarify]; wr-04 [concise, clarify]; gen-01 [concise, clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise, assumptions]; math-02 [concise, clarify]; corr-01 [retractions, concise, assumptions]; corr-02 [faithful, retractions, concise, clarify]; corr-03 [retractions, concise, assumptions]; filler-02 [no_invention]; ramble-01 [concise]; ramble-02 [no_invention, clarify]; vague-01 [concise, assumptions]; vague-02 [concise, assumptions]; att-01 [concise, clarify, assumptions]; att-02 [no_invention, concise]; tech-01 [concise, clarify]; tech-02 [concise]; tech-03 [concise]; ml-01 [no_invention, concise, clarify]; fmt-01 [concise]; fmt-02 [concise, assumptions]; good-01 [concise]; sens-01 [no_invention, concise]; multi-01 [clarify]; lang-01 [concise, clarify]
