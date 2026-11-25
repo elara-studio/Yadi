@@ -1,6 +1,7 @@
 import {
   type AppEvent,
   type AppState,
+  type Attachment,
   type Effect,
   EmptyTranscriptError,
   LlmError,
@@ -12,6 +13,7 @@ import {
   type TranscriptSnapshot,
   estimateTokens,
   initialModel,
+  parseAttachmentMeta,
   transition,
 } from "@yadi/core";
 import type { MascotState } from "../../components/Mascot";
@@ -119,6 +121,8 @@ export interface ControllerPorts {
   broadcastResult(result: ResultPayload | null): void | Promise<void>;
   /** Sends the reason processing failed (`app:error`); null clears it. */
   broadcastError(error: ProcessErrorPayload | null): void | Promise<void>;
+  /** Tells the chat window to forget its attachments (`app:attachments-clear`): a new session. */
+  clearAttachments(): void | Promise<void>;
   /** Diagnostics only. Never pass transcripts, audio or prompts here. */
   log(message: string): void;
 }
@@ -219,6 +223,8 @@ export class Controller {
   private recent: RecentItem[] = [];
   private lastResult: ResultPayload | null = null;
   private lastError: ProcessErrorPayload | null = null;
+  /** Name, type and the start of each attachment (the chat window keeps the full text). */
+  private attachments: Attachment[] = [];
 
   /**
    * Starts in `minimized` (mascot visible, chat hidden). Task 15 will start in `setup` until
@@ -284,6 +290,10 @@ export class Controller {
       void this.ports.broadcastTranscript(this.transcript.snapshot());
       void this.ports.broadcastResult(this.lastResult);
       void this.ports.broadcastError(this.lastError);
+      return;
+    }
+    if (type === "ATTACHMENTS_SET") {
+      this.attachments = parseAttachmentMeta((payload as { items?: unknown }).items);
       return;
     }
     if (type === "TRANSCRIPT_SET_TEXT") {
@@ -414,6 +424,7 @@ export class Controller {
     };
     const options: PipelineRunOptions = {
       transcript,
+      attachments: this.attachments,
       signal: abort.signal,
       onStage: (name: StageName, data: unknown) => {
         if (name === "normalize") {
@@ -582,6 +593,8 @@ export class Controller {
         break;
       case "clearSession":
         this.clearOutcome();
+        this.attachments = [];
+        void this.guard(this.ports.clearAttachments());
         this.transcript.clear();
         void this.ports.broadcastTranscript(this.transcript.snapshot());
         void this.guard(this.ports.clearAudio());

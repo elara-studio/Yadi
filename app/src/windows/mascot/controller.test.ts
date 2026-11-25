@@ -31,6 +31,7 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     warmModel: vi.fn(async () => {}),
     broadcastResult: vi.fn(),
     broadcastError: vi.fn(),
+    clearAttachments: vi.fn(),
     stopAudio: vi.fn(),
     clearAudio: vi.fn(),
     broadcast: vi.fn((p) => void calls.push(`broadcast:${p.state}:${p.editing}`)),
@@ -965,5 +966,70 @@ describe("classifyProcessError", () => {
     expect(classifyProcessError(new LlmError("Cannot reach Ollama: x"), false)).toBe("unreachable");
     expect(classifyProcessError(new LlmError("server error", 500), false)).toBe("failed");
     expect(classifyProcessError("weird", false)).toBe("failed");
+  });
+});
+
+describe("attachments in the processing flow", () => {
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  const meta = [{ name: "report.pdf", type: "pdf", preview: "Quarterly revenue" }];
+
+  function recorded() {
+    const t = setup({ state: "recording", editing: false, hasTranscript: false });
+    t.controller.handleSttFinal({ id: 0, text: "Summarize this report." });
+    return t;
+  }
+  async function process(controller: Controller) {
+    controller.dispatch({ type: "KEY_Y" });
+    await controller.whenSettled();
+    await flush();
+  }
+  const pipelineOptions = (ports: ControllerPorts) =>
+    (ports.runPipeline as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+
+  it("hands the attachments' names, types and previews to the pipeline", async () => {
+    const { controller, ports } = recorded();
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: meta });
+    await process(controller);
+    expect(pipelineOptions(ports).attachments).toEqual(meta);
+  });
+
+  it("the pipeline gets no attachments when none were added", async () => {
+    const { controller, ports } = recorded();
+    await process(controller);
+    expect(pipelineOptions(ports).attachments).toEqual([]);
+  });
+
+  it("the latest list replaces the earlier one (a removed chip is gone)", async () => {
+    const { controller, ports } = recorded();
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: meta });
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: [] });
+    await process(controller);
+    expect(pipelineOptions(ports).attachments).toEqual([]);
+  });
+
+  it("malformed payloads are ignored safely", async () => {
+    const { controller, ports } = recorded();
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: "nope" });
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: [null, 3, { name: 1 }] });
+    await process(controller);
+    expect(pipelineOptions(ports).attachments).toEqual([]);
+  });
+
+  it("a new session forgets the attachments and tells the chat window", async () => {
+    const { controller, ports } = setup({ state: "idle", editing: false, hasTranscript: true });
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: meta });
+    controller.dispatch({ type: "NEW_SESSION" });
+    expect(ports.clearAttachments).toHaveBeenCalledTimes(1);
+    controller.dispatch({ type: "KEY_Y" });
+    controller.handleSttFinal({ id: 0, text: "Hello again." });
+    await process(controller);
+    expect(pipelineOptions(ports).attachments).toEqual([]);
+  });
+
+  it("recording again in the same session keeps the attachments", () => {
+    const { controller, ports } = setup({ state: "idle", editing: false, hasTranscript: false });
+    controller.handleAppEvent({ type: "ATTACHMENTS_SET", items: meta });
+    controller.dispatch({ type: "KEY_Y" }); // idle -> recording
+    expect(ports.clearAttachments).not.toHaveBeenCalled();
   });
 });

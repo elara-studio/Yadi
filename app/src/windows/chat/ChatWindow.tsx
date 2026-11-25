@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
-import { loadSetupState, restartSetup, type AppEvent, type TranscriptSnapshot } from "@yadi/core";
+import {
+  attachmentCopyText,
+  loadSetupState,
+  restartSetup,
+  type AppEvent,
+  type TranscriptSnapshot,
+} from "@yadi/core";
+import { useAttachments } from "../../attachments/useAttachments";
+import { AttachmentBar } from "../../components/AttachmentBar";
 import { AboutView } from "../../about/AboutView";
 import { ProcessErrorView } from "../../components/ProcessErrorView";
 import { ProcessingView } from "../../components/ProcessingView";
@@ -21,7 +29,8 @@ import type {
 } from "../mascot/controller";
 import { useKeyboardControls } from "./useKeyboardControls";
 
-const sendToController = (event: AppEvent | TranscriptEditEvent) => void emit("app:event", event);
+type ToController = AppEvent | TranscriptEditEvent | { type: "ATTACHMENTS_SET"; items: unknown[] };
+const sendToController = (event: ToController) => void emit("app:event", event);
 
 /** Mirrors `Notice` in src-tauri/src/hotkey/mod.rs. */
 interface Notice {
@@ -43,6 +52,11 @@ export function ChatWindow() {
   const [transcript, setTranscript] = useState<TranscriptSnapshot>({ segments: [], partial: "" });
 
   useKeyboardControls(sendToController);
+  // Files can be added while talking or reading the result, not while the prompt is made.
+  const attachments = useAttachments(
+    app.state === "idle" || app.state === "recording" || app.state === "result",
+    sendToController,
+  );
 
   // The real setup, or the simulated one when YADI_MOCK_SETUP=1 (development only).
   useEffect(() => {
@@ -157,6 +171,9 @@ export function ChatWindow() {
               {app.state === "result" && result && (
                 <ResultView
                   result={result}
+                  attachmentText={
+                    attachments.items.length > 0 ? attachmentCopyText(attachments.items) : undefined
+                  }
                   onRegenerate={() => sendToController({ type: "PROCESS_RETRY" })}
                 />
               )}
@@ -167,6 +184,7 @@ export function ChatWindow() {
                 send={sendToController}
               />
             </div>
+            <AttachmentBar {...attachments} />
             <div className="chat-hint">{KEY_HINT}</div>
           </>
         )}

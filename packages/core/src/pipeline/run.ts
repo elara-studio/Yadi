@@ -149,6 +149,7 @@ export async function runPipeline(options: RunOptions): Promise<PipelineResult> 
     transcript: options.transcript,
     stage0,
     clean,
+    attachmentText: attachments.flatMap((a) => (a.preview ? [a.preview] : [])),
   });
   if (dropped.count > 0)
     warnings.push(

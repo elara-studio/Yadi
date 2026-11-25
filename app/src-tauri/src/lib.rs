@@ -1,3 +1,4 @@
+mod attachments;
 mod audio;
 mod download;
 mod hardware;
@@ -62,6 +63,8 @@ pub fn run() {
             setup::hotkey_request_permission,
             hardware::get_hardware_profile,
             tiers::select_model_tier,
+            attachments::commands::attachment_from_path,
+            attachments::commands::attachment_from_bytes,
             models::list_models,
             models::download_model,
             models::cancel_download,

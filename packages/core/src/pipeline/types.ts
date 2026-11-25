@@ -69,7 +69,12 @@ export interface ValidAnalysis {
   missing_info: string[];
 }
 
-export type DropReason = "no-evidence" | "evidence-not-in-transcript" | "invented-number";
+export type DropReason =
+  | "no-evidence"
+  | "evidence-not-in-transcript"
+  | "invented-number"
+  /** The task uses words that appear only in an attachment, not in what the person said. */
+  | "from-attachment";
 
 export interface DroppedItem {
   field: "role" | "task" | "context" | "constraints" | "output_format";

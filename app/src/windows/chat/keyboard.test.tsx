@@ -120,6 +120,7 @@ describe("keyboard -> Controller integration", () => {
       warmModel: async () => {},
       broadcastResult: () => {},
       broadcastError: () => {},
+      clearAttachments: () => {},
       stopAudio: () => {},
       clearAudio: () => {},
       log: (m) => void calls.push(m),

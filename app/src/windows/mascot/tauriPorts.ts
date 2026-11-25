@@ -45,5 +45,6 @@ export const tauriPorts: ControllerPorts = {
   },
   broadcastResult: (result) => emit("app:result", result),
   broadcastError: (error) => emit("app:error", error),
+  clearAttachments: () => emit("app:attachments-clear"),
   log: (message) => console.info(`[controller] ${message}`),
 };

@@ -165,6 +165,35 @@ describe("ChatWindow", () => {
       );
     });
 
+    it("'Copy with attachment text' appears once something is attached, and copies the blocks", async () => {
+      const writeText = vi.fn(() => Promise.resolve());
+      Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:result")?.({ payload: RESULT }));
+      act(() => handlers.get("app:state")?.({ payload: { state: "result", editing: false } }));
+      await screen.findByTestId("prompt-text");
+      expect(screen.queryByText("Copy with attachment text")).not.toBeInTheDocument();
+
+      const paste = new Event("paste", { bubbles: true, cancelable: true }) as ClipboardEvent;
+      Object.defineProperty(paste, "clipboardData", {
+        value: { files: [], getData: () => "the pasted words" },
+      });
+      act(() => void document.body.dispatchEvent(paste));
+      expect(await screen.findByText("Pasted text")).toBeInTheDocument();
+      expect(emit).toHaveBeenCalledWith("app:event", {
+        type: "ATTACHMENTS_SET",
+        items: [{ name: "Pasted text", type: "pasted text", preview: "the pasted words" }],
+      });
+
+      await act(async () =>
+        fireEvent.click(screen.getByRole("button", { name: "Copy with attachment text" })),
+      );
+      expect(writeText).toHaveBeenCalledWith(
+        "Task: Fix the sink.\n\nAttachment: Pasted text (pasted text)\n```\nthe pasted words\n```",
+      );
+    });
+
     it("does not show a stale prompt outside the result state", async () => {
       render(<ChatWindow />);
       await act(async () => {});
