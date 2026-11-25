@@ -171,3 +171,49 @@ export function runChecks({ manifest, models = null, libraries = [], release = f
 
   return { errors, review };
 }
+
+/**
+ * Plain-text third-party notices for the installer: every component with its licence and
+ * attribution, then each distinct licence text once. Pure, so it can be tested.
+ * `data` is the shape of app/src/generated/licenses.json: { entries, texts }.
+ */
+export function renderNotices({ entries, texts }) {
+  const rule = "=".repeat(78);
+  const textNumbers = new Map(
+    Object.keys(texts)
+      .sort()
+      .map((id, i) => [id, i + 1]),
+  );
+  const out = [
+    "Yadi: third-party notices",
+    "",
+    "Yadi is built with the components below. Each is used under the licence shown; the full",
+    "text of every licence follows the list. Language and speech models run on this computer",
+    "and are downloaded on first use from the sources named in the list.",
+    "",
+  ];
+  const byKind = (kind) => entries.filter((e) => e.kind === kind);
+  for (const kind of KINDS) {
+    const group = byKind(kind);
+    if (group.length === 0) continue;
+    out.push(rule, KIND_LABELS[kind].toUpperCase(), rule, "");
+    for (const e of group.sort((a, b) => a.name.localeCompare(b.name))) {
+      out.push(`${e.name} ${e.version ?? ""}`.trim());
+      out.push(`  Licence: ${e.license_spdx}`);
+      if (e.attribution) out.push(`  ${e.attribution}`);
+      if (e.source_url) out.push(`  Source: ${e.source_url}`);
+      const refs = (e.text_ids ?? []).map((id) => textNumbers.get(id)).filter(Boolean);
+      if (refs.length) out.push(`  Licence text: ${refs.map((n) => `[${n}]`).join(", ")}`);
+      else
+        out.push(
+          "  Licence text: not shipped with this component; standard texts: https://spdx.org/licenses/",
+        );
+      out.push("");
+    }
+  }
+  out.push(rule, "LICENCE TEXTS", rule, "");
+  for (const [id, n] of textNumbers) {
+    out.push(`[${n}]`, texts[id].trim(), "", "-".repeat(78), "");
+  }
+  return out.join("\n");
+}

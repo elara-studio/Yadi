@@ -16,7 +16,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateManifest } from "./lib/licenses.mjs";
+import { renderNotices, validateManifest } from "./lib/licenses.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "app/src/generated/licenses.json");
@@ -146,6 +146,9 @@ for (const raw of tree.split("\n")) {
 entries.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : 0));
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify({ entries, texts }));
+// The same data as plain text, shipped inside the installer (tauri.conf.json -> bundle.resources).
+const NOTICES = join(ROOT, "app/src-tauri/resources/THIRD_PARTY_NOTICES.txt");
+writeFileSync(NOTICES, renderNotices({ entries, texts }));
 const libs = entries.filter((e) => e.kind === "library");
 console.log(
   `gen-licenses: ${entries.length} entries (${manifest.length} hand-written, ${libs.filter((l) => l.ecosystem === "npm").length} npm, ` +

@@ -22,6 +22,7 @@ eval/results/*.json
 
 # generated licence data (built by scripts/gen-licenses.mjs)
 app/src/generated/
+app/src-tauri/resources/THIRD_PARTY_NOTICES.txt
 
 # OS and editor
 .DS_Store

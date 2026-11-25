@@ -145,3 +145,61 @@ test("CLI: prints disallowed dependency licences and exits 1", () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /npm:evil@1\.0\.0/);
 });
+
+// ---- third-party notices (Task 22) -----------------------------------------------------------
+
+import { renderNotices } from "./lib/licenses.mjs";
+
+const NOTICE_DATA = {
+  entries: [
+    {
+      id: "yadi",
+      name: "Yadi",
+      kind: "app",
+      version: "0.1.0",
+      license_spdx: "Apache-2.0",
+      attribution: "Copyright Elara Software.",
+      source_url: "https://example.org/yadi",
+      text_ids: ["aaa"],
+    },
+    {
+      id: "serde",
+      name: "serde",
+      kind: "library",
+      version: "1.0.0",
+      license_spdx: "MIT OR Apache-2.0",
+      text_ids: ["bbb", "aaa"],
+    },
+    { id: "nolic", name: "zeta", kind: "library", version: "2", license_spdx: "MIT", text_ids: [] },
+  ],
+  texts: { aaa: "APACHE TEXT", bbb: "MIT TEXT" },
+};
+
+test("renderNotices lists every component with its licence and attribution", () => {
+  const text = renderNotices(NOTICE_DATA);
+  assert.match(text, /^Yadi: third-party notices/);
+  assert.match(text, /APPLICATION/);
+  assert.match(text, /LIBRARIES/);
+  assert.match(text, /Yadi 0\.1\.0\n {2}Licence: Apache-2\.0\n {2}Copyright Elara Software\./);
+  assert.match(text, /Source: https:\/\/example\.org\/yadi/);
+  assert.match(text, /serde 1\.0\.0\n {2}Licence: MIT OR Apache-2\.0/);
+});
+
+test("renderNotices prints each licence text once and refers to it by number", () => {
+  const text = renderNotices(NOTICE_DATA);
+  assert.equal(text.split("APACHE TEXT").length - 1, 1);
+  assert.equal(text.split("MIT TEXT").length - 1, 1);
+  // aaa sorts first -> [1]; serde uses bbb ([2]) and aaa ([1])
+  assert.match(text, /Licence text: \[2\], \[1\]/);
+  assert.match(text, /\[1\]\nAPACHE TEXT/);
+  assert.match(text, /\[2\]\nMIT TEXT/);
+});
+
+test("renderNotices copes with components that have no licence file", () => {
+  const text = renderNotices(NOTICE_DATA);
+  assert.match(text, /zeta 2\n {2}Licence: MIT\n {2}Licence text: not shipped with this component/);
+});
+
+test("renderNotices is deterministic", () => {
+  assert.equal(renderNotices(NOTICE_DATA), renderNotices(structuredClone(NOTICE_DATA)));
+});

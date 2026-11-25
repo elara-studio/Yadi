@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <!-- Yadi lives in the menu bar and as a floating mascot: no Dock icon. -->
+  <key>LSUIElement</key>
+  <true/>
   <key>NSMicrophoneUsageDescription</key>
   <string>Yadi listens through your microphone only while you are recording, to turn your speech into text on this device. Audio is never saved or sent anywhere.</string>
 </dict>
