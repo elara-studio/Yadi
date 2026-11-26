@@ -203,17 +203,19 @@ mod tests {
 
     #[test]
     fn mac_candidate_paths_match_the_plan() {
+        // Compared as paths, not strings: when the tests run on Windows, `join` puts a `\`
+        // between "/Users/me" and "Applications", and Windows paths treat `\` and `/` alike.
         let p = candidate_paths(Os::Mac, Some(Path::new("/Users/me")), None);
-        let p: Vec<&str> = p.iter().map(|x| x.to_str().unwrap()).collect();
-        assert_eq!(
-            p,
-            [
-                "/Applications/Ollama.app",
-                "/Users/me/Applications/Ollama.app",
-                "/usr/local/bin/ollama",
-                "/opt/homebrew/bin/ollama"
-            ]
-        );
+        let expected: Vec<PathBuf> = [
+            "/Applications/Ollama.app",
+            "/Users/me/Applications/Ollama.app",
+            "/usr/local/bin/ollama",
+            "/opt/homebrew/bin/ollama",
+        ]
+        .iter()
+        .map(PathBuf::from)
+        .collect();
+        assert_eq!(p, expected);
     }
 
     #[test]
