@@ -12,7 +12,7 @@ export type MascotState = "asleep" | "setup" | "idle" | "listening" | "thinking"
  * replace the <img> below. Nothing else depends on this file's internals.
  */
 export const MASCOT_STATUS: Record<MascotState, string> = {
-  asleep: "Click me to start",
+  asleep: "Long press on Y to call me back",
   setup: "Let's get you set up",
   idle: "Press Y when you're ready to record",
   listening: "Press Y when you're done",
