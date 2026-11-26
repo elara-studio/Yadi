@@ -100,6 +100,17 @@ describe("dropping files", () => {
     expect(screen.queryByText("Drop files to attach them")).not.toBeInTheDocument();
   });
 
+  it("ignores a drag without files, such as the prompt dragged out of Yadi", async () => {
+    const { api } = setup();
+    await settle();
+    act(() => dropHandler?.({ payload: { type: "enter", paths: [] } }));
+    act(() => dropHandler?.({ payload: { type: "over", paths: [] } }));
+    expect(screen.queryByText("Drop files to attach them")).not.toBeInTheDocument();
+    drop([]);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(api.fromPath).not.toHaveBeenCalled();
+  });
+
   it("adds several files in order", async () => {
     const names = ["a.txt", "b.txt", "c.txt"];
     const fromPath = vi.fn(async (p: string) => extracted({ name: p.slice(1) }));

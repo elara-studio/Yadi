@@ -50,6 +50,18 @@ describe("ResultView", () => {
     expect(writeText).toHaveBeenCalledWith(PROMPT);
   });
 
+  it("can be dragged out as plain text carrying the whole prompt", () => {
+    render(<ResultView result={result()} revealMs={600} />);
+    const card = screen.getByTestId("prompt-text");
+    expect(card).toHaveAttribute("draggable", "true");
+    const setData = vi.fn();
+    const dataTransfer = { setData, effectAllowed: "all" };
+    fireEvent.dragStart(card, { dataTransfer });
+    // Mid-reveal, the drag still carries everything.
+    expect(setData).toHaveBeenCalledWith("text/plain", PROMPT);
+    expect(dataTransfer.effectAllowed).toBe("copy");
+  });
+
   it("reveals the whole prompt within 600 ms", () => {
     vi.useFakeTimers();
     render(<ResultView result={result()} revealMs={900} />);

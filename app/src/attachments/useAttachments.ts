@@ -51,6 +51,8 @@ export function useAttachments(
   const itemsRef = useRef<AttachmentItem[]>([]);
   const enabledRef = useRef(enabled);
   const nextId = useRef(1);
+  /** Whether the drag in progress brought files (set on "enter"). */
+  const carriesFiles = useRef(false);
   const queue = useRef<Promise<void>>(Promise.resolve());
   const sendRef = useRef(send);
   const apiRef = useRef(api);
@@ -143,12 +145,20 @@ export function useAttachments(
     webview
       .onDragDropEvent((event) => {
         const p = event.payload;
-        if (p.type === "enter" || p.type === "over") {
-          setDragging(enabledRef.current);
+        // A drag without files (text, or the prompt dragged out of Yadi itself) is not an
+        // attachment: no overlay, and dropping it does nothing.
+        if (p.type === "enter") {
+          carriesFiles.current = p.paths.length > 0;
+          setDragging(enabledRef.current && carriesFiles.current);
+        } else if (p.type === "over") {
+          setDragging(enabledRef.current && carriesFiles.current);
         } else if (p.type === "leave") {
+          carriesFiles.current = false;
           setDragging(false);
         } else if (p.type === "drop") {
+          carriesFiles.current = false;
           setDragging(false);
+          if (p.paths.length === 0) return;
           if (enabledRef.current) addPaths(p.paths);
           else fail("Wait until the prompt is ready, then add files.");
         }

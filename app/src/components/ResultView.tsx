@@ -80,7 +80,18 @@ export function ResultView({ result, revealMs = 450, attachmentText, onRegenerat
           what you said. You can press Y to try again.
         </p>
       )}
-      <pre className="result-card" data-testid="prompt-text" aria-label="Prompt">
+      <pre
+        className="result-card"
+        data-testid="prompt-text"
+        aria-label="Prompt"
+        title="Drag into any app to paste it there"
+        draggable
+        onDragStart={(e) => {
+          // The whole prompt, as plain text: terminals, chat boxes and editors all accept it.
+          e.dataTransfer.effectAllowed = "copy";
+          e.dataTransfer.setData("text/plain", result.prompt);
+        }}
+      >
         {visible}
       </pre>
       <div className="result-actions">

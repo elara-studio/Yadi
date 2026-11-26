@@ -836,3 +836,12 @@ body,
   white-space: pre-wrap;
   user-select: text;
 }
+
+/* The finished prompt can be dragged into a terminal, chat box or any text field. */
+.result-card[draggable="true"] {
+  cursor: grab;
+  -webkit-user-drag: element;
+}
+.result-card[draggable="true"]:active {
+  cursor: grabbing;
+}
