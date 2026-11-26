@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { getVersion } from "@tauri-apps/api/app";
 import { HoldTest } from "./HoldTest";
+import { UpdateChecker } from "./UpdateChecker";
 import { VocabularyEditor } from "./VocabularyEditor";
 import {
   MAX_THRESHOLD_MS,
@@ -40,6 +42,7 @@ export function SettingsView({
   const [saved, setSaved] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [vocabularyKey, setVocabularyKey] = useState(0);
+  const [version, setVersion] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +61,10 @@ export function SettingsView({
     );
     isEnabled().then(
       (on) => !cancelled && setAutostart(on),
+      () => {},
+    );
+    getVersion().then(
+      (v) => !cancelled && setVersion(v),
       () => {},
     );
     return () => {
@@ -318,6 +325,8 @@ export function SettingsView({
           )}
         </div>
       </fieldset>
+
+      <UpdateChecker version={version} />
 
       <fieldset className="settings-group">
         <legend>Reset</legend>

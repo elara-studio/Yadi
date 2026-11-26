@@ -9,6 +9,7 @@ mod settings;
 mod setup;
 mod stt;
 mod tiers;
+mod updates;
 mod vocabulary;
 mod windows;
 
@@ -48,6 +49,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(audio::commands::AudioState::default())
         .manage(models::DownloadState::default())
+        .manage(updates::UpdateState::default())
         .manage(stt::commands::SttState::default())
         .manage(ollama::commands::OllamaState::new().expect("HTTP client for Ollama"))
         .manage(stt::commands::FinalPassState::default())
@@ -94,6 +96,11 @@ pub fn run() {
             models::list_models,
             models::download_model,
             models::cancel_download,
+            updates::check_for_update,
+            updates::download_update,
+            updates::cancel_update_download,
+            updates::install_update,
+            updates::open_release_page,
             hotkey::get_notice,
             hotkey::open_permission_settings,
         ])

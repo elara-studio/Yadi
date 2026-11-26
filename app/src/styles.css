@@ -812,3 +812,16 @@ body,
   font-weight: 600;
   pointer-events: none;
 }
+
+.update-notes {
+  max-height: 140px;
+  overflow: auto;
+  margin: 6px 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 5%);
+  font: inherit;
+  font-size: 12px;
+  white-space: pre-wrap;
+  user-select: text;
+}

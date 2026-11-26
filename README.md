@@ -2,7 +2,7 @@
 
 Speak your unfiltered thoughts. Yadi turns them into a clean, structured prompt you can paste into
 any AI assistant. Speech recognition and the language model run **on your own computer**: after the
-one-time setup download, Yadi works offline.
+one-time setup download, Yadi works offline (it only goes online to check for updates when you ask).
 
 > **Status: pre-release.** The app is built and tested, but there are no signed installers yet and
 > the language models have not all been scored (see "Language models" below).
@@ -74,11 +74,13 @@ prompt-quality eval set. A model marked "untested" has not been scored yet.
   anywhere, never saved to disk and never written to logs. Audio exists only in memory while you
   record and is dropped right after the transcript is finished.
 - **No telemetry, no accounts, no analytics.**
-- **The only network use** is the setup download: speech models from `github.com` and the Ollama
-  installer from `ollama.com` (the language model itself is pulled by Ollama from its own library).
-  During normal use the only connection Yadi makes is to Ollama on your own machine
-  (`127.0.0.1:11434`). The window's content-security policy and the HTTP permission list allow
-  nothing else.
+- **The only network use** is the setup download (speech models from `github.com`, the Ollama
+  installer from `ollama.com`; the language model itself is pulled by Ollama from its own library)
+  and **Settings > Check for updates**, which reads Yadi's public release information from
+  `github.com` and downloads a new installer only when you press the button. Nothing about you is
+  sent, and nothing is checked in the background. During normal use the only connection Yadi makes
+  is to Ollama on your own machine (`127.0.0.1:11434`). The window's content-security policy and
+  the HTTP permission list allow nothing else; the update check runs in the app itself.
 - Attachments are read into memory for the session only, never executed, and treated as data: text
   inside a file cannot change what Yadi writes.
 
