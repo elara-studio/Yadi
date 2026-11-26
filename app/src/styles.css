@@ -234,8 +234,14 @@ body,
 
 .chat-info {
   cursor: pointer;
-  width: 22px;
-  height: 22px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border-radius: 50%;
   border: 1.5px solid var(--yadi-orange);
   background: transparent;
@@ -245,6 +251,11 @@ body,
     serif;
   line-height: 1;
   cursor: pointer;
+}
+.chat-icon-button .gear-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 /* ---------- About page ---------- */
