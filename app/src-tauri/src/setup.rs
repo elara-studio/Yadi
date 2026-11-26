@@ -11,7 +11,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::audio::AudioSource;
 use crate::audio::mic::MicSource;
-use crate::audio::permission::{MicPermission, microphone_status};
+use crate::audio::permission::{MicPermission, microphone_status, request_microphone_access};
 use crate::audio::queue::ChunkQueue;
 use crate::hotkey::permissions::{self, PermissionStatus};
 
@@ -84,11 +84,17 @@ pub fn mic_permission_status() -> &'static str {
     mic_word(microphone_status())
 }
 
-/// Triggers the operating system's microphone prompt by opening the microphone for a moment
-/// (nothing is recorded or kept), then waits for the answer (up to 60 s) and reports it.
+/// Asks the operating system's microphone question and waits for the answer (up to 60 s).
+/// On macOS this uses the native request, whose callback carries the answer. Where no native
+/// request exists, it opens the microphone for a moment instead (nothing is recorded or kept),
+/// which is what makes such systems ask.
 #[tauri::command]
 pub async fn mic_request_permission() -> Result<&'static str, String> {
     tauri::async_runtime::spawn_blocking(|| {
+        let native = request_microphone_access(Duration::from_secs(60));
+        if native != MicPermission::Unknown {
+            return Ok(mic_word(native));
+        }
         let queue = std::sync::Arc::new(ChunkQueue::new(4));
         let mut mic = MicSource::new();
         // Opening the stream is what makes macOS ask. Errors (no device, denied) are fine here:

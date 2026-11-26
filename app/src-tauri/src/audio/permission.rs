@@ -75,8 +75,70 @@ pub fn microphone_status() -> MicPermission {
     .unwrap_or(MicPermission::Unknown)
 }
 
+/// Shows the system's microphone question (if it has not been answered yet) and waits for the
+/// person's answer, up to `timeout`. Returns `Unknown` when the native API is unavailable, so the
+/// caller can fall back to opening the microphone.
+///
+/// The answer comes from `requestAccessForMediaType:completionHandler:` itself rather than from
+/// re-reading `authorizationStatusForMediaType:`, because that status can stay "not determined"
+/// in the running process even after the person pressed Allow.
+#[cfg(target_os = "macos")]
+pub fn request_microphone_access(timeout: std::time::Duration) -> MicPermission {
+    use block2::RcBlock;
+    use objc2::msg_send;
+    use objc2::runtime::{AnyClass, AnyObject, Bool};
+
+    #[link(name = "AVFoundation", kind = "framework")]
+    unsafe extern "C" {
+        static AVMediaTypeAudio: Option<&'static AnyObject>;
+    }
+
+    let current = microphone_status();
+    if current != MicPermission::NotDetermined {
+        return current;
+    }
+
+    let (tx, rx) = std::sync::mpsc::channel::<bool>();
+    let asked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let Some(class) = AnyClass::get(c"AVCaptureDevice") else {
+            return false;
+        };
+        // The handler runs on an arbitrary queue; the channel carries the answer back here.
+        let handler = RcBlock::new(move |granted: Bool| {
+            let _ = tx.send(granted.as_bool());
+        });
+        // SAFETY: AVMediaTypeAudio is an immutable framework constant; the handler is a
+        // `void (^)(BOOL)` block, which AVFoundation copies before returning.
+        unsafe {
+            let media = AVMediaTypeAudio;
+            let _: () =
+                msg_send![class, requestAccessForMediaType: media, completionHandler: &*handler];
+        }
+        true
+    }))
+    .unwrap_or(false);
+    if !asked {
+        return MicPermission::Unknown;
+    }
+
+    match rx.recv_timeout(timeout) {
+        Ok(true) => MicPermission::Authorized,
+        Ok(false) => match microphone_status() {
+            MicPermission::Restricted => MicPermission::Restricted,
+            _ => MicPermission::Denied,
+        },
+        // No answer in time: report whatever the system says now.
+        Err(_) => microphone_status(),
+    }
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn microphone_status() -> MicPermission {
+    MicPermission::Unknown
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn request_microphone_access(_timeout: std::time::Duration) -> MicPermission {
     MicPermission::Unknown
 }
 
