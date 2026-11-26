@@ -41,7 +41,8 @@ Yadi is at **version 0.1**, its first version. Please treat it as an early previ
   copying it. Long sessions, unusual hardware and edge cases have had little attention.
 - **The models will get better.** A few small models have been scored on a 42-case test set, and
   more tuning, more models and better prompts are on the way.
-- **No signed installer yet.** For now you run Yadi from source (see [Try it](#-try-it)).
+- **The installers aren't signed yet,** so macOS and Windows warn you the first time you open
+  Yadi. [Try it](#-try-it) shows how to get past the warning.
 
 Much more is coming. If something breaks or feels off, an issue is very welcome.
 
@@ -99,7 +100,22 @@ Yadi's own code, which only fetches from those addresses.
 
 ## 🚀 Try it
 
-There is no public download yet. To run Yadi from source:
+### Download
+
+| Your computer         | Download                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| macOS (Apple Silicon) | [Yadi_0.1.0_aarch64.dmg](https://github.com/elara-studio/Yadi/releases/latest/download/Yadi_0.1.0_aarch64.dmg)     |
+| Windows (x64)         | [Yadi_0.1.0_x64-setup.exe](https://github.com/elara-studio/Yadi/releases/latest/download/Yadi_0.1.0_x64-setup.exe) |
+
+All versions and release notes are on the [Releases page](https://github.com/elara-studio/Yadi/releases/latest).
+
+**The installers aren't signed yet**, so your computer will warn you the first time:
+
+- **macOS:** open the DMG and drag Yadi to Applications. Open Yadi; when macOS says it can't be
+  opened, go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+- **Windows:** if SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
+
+### Run from source
 
 ```sh
 pnpm install
@@ -108,7 +124,7 @@ pnpm build        # builds the installer (a .dmg on macOS, an NSIS .exe on Windo
 ```
 
 You need Node 20+, pnpm, Rust (stable) and the Xcode Command Line Tools on macOS. On Windows you
-need the MSVC build tools and WebView2. Installers are unsigned for now.
+need the MSVC build tools and WebView2.
 
 ### First run
 
@@ -217,8 +233,8 @@ pnpm eval --model <ollama-tag> [--judge <ollama-tag>]   # score a model on eval/
 - Development builds (`pnpm dev`) do not register the login listener that reopens Yadi after
   Quit, unless you set `YADI_SUMMON_LISTENER=1`. They also show licences only after
   `pnpm check:licenses`, and macOS gives permissions to your terminal or editor, not to Yadi.
-- CI builds unsigned installers as workflow artifacts. Signing and notarisation are not part of
-  this repository's automation.
+- Pushing a version tag (`v*`) builds the installers and attaches them to a draft GitHub
+  release. They are not signed or notarised yet.
 
 </details>
 
