@@ -1,0 +1,74 @@
+name: Release
+
+# Pushing a tag like v0.1.0 builds the macOS and Windows installers and attaches them to a
+# DRAFT GitHub release for that tag. Check the draft, then press Publish on GitHub.
+# Builds are not signed yet (see docs/RELEASE.md); macOS builds are ad-hoc signed only.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+          - name: Windows (x64)
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/gen-licenses.mjs
+      - run: node scripts/check-licenses.mjs --release
+      - run: pnpm test
+      - name: The installer must carry the real notices, not the stand-in
+        shell: bash
+        run: |
+          if grep -q "^STAND-IN" app/src-tauri/resources/THIRD_PARTY_NOTICES.txt; then
+            echo "THIRD_PARTY_NOTICES.txt is the stand-in" && exit 1
+          fi
+      - name: Build and attach to the draft release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # "-" = ad-hoc signature. Without any signature, macOS calls a downloaded app "damaged".
+          # Replace with the Developer ID identity (plus the APPLE_* secrets) once you have one.
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && '-' || '' }}
+        with:
+          projectPath: app
+          tauriScript: pnpm tauri
+          tagName: ${{ github.ref_name }}
+          releaseName: Yadi ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          releaseBody: |
+            Early preview. Speech and the language model run on your own computer.
+
+            **Download**
+            - macOS (Apple Silicon): `Yadi_*_aarch64.dmg`
+            - Windows (x64): `Yadi_*_x64-setup.exe`
+
+            **These builds are not signed yet**, so your computer will warn you the first time:
+            - **macOS:** open the DMG and drag Yadi to Applications. Open Yadi; when macOS says it
+              can't be opened, go to System Settings → Privacy & Security, scroll down and click
+              **Open Anyway**.
+            - **Windows:** if SmartScreen says "Windows protected your PC", click **More info →
+              Run anyway**.
