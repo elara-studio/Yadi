@@ -61,7 +61,8 @@ export function buildDetails(input: {
 }
 
 function ProgressBar({ progress }: { progress: StepProgress | null }) {
-  const pct = progress ? percent(progress.received, progress.total) : null;
+  // While the step finishes its work after the download, the bar shows "busy", not a full bar.
+  const pct = progress && !progress.finishing ? percent(progress.received, progress.total) : null;
   return (
     <div>
       <div
@@ -81,8 +82,9 @@ function ProgressBar({ progress }: { progress: StepProgress | null }) {
       {progress && (
         <p className="setup-progress-text" data-testid="progress-text">
           {progress.label}
+          {progress.finishing && "…"}
           {pct !== null && ` · ${pct}%`}
-          {progress.total
+          {!progress.finishing && progress.total
             ? ` · ${formatBytes(progress.received)} of ${formatBytes(progress.total)}`
             : ""}
           {progress.bytesPerSecond ? ` · ${formatSpeed(progress.bytesPerSecond)}` : ""}

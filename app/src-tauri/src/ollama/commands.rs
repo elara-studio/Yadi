@@ -105,6 +105,12 @@ pub async fn ollama_install(app: AppHandle, consent: bool) -> Result<String, Str
                 );
             }
         };
+        let mut phase = |name: &str| {
+            let _ = app.emit(
+                "download:progress",
+                json!({ "id": "ollama-installer", "received": 0, "total": null, "phase": name }),
+            );
+        };
         let cancel = CancelToken::new();
         let installed = if cfg!(windows) {
             install::install(
@@ -114,6 +120,7 @@ pub async fn ollama_install(app: AppHandle, consent: bool) -> Result<String, Str
                 &WindowsChecker,
                 &work,
                 &mut progress,
+                &mut phase,
                 &cancel,
             )
         } else {
@@ -127,6 +134,7 @@ pub async fn ollama_install(app: AppHandle, consent: bool) -> Result<String, Str
                 &MacChecker,
                 &work,
                 &mut progress,
+                &mut phase,
                 &cancel,
             )
         }

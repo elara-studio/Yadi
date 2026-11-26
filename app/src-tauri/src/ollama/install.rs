@@ -63,6 +63,8 @@ pub trait Steps {
 }
 
 /// Downloads, verifies and installs. Refuses unless `consent` is true.
+// One argument over clippy's limit: the two reporting callbacks (bytes, then phases) stay separate.
+#[allow(clippy::too_many_arguments)]
 pub fn install(
     consent: bool,
     downloader: &Downloader,
@@ -70,6 +72,7 @@ pub fn install(
     checker: &dyn SignatureChecker,
     work_dir: &Path,
     progress: &mut dyn FnMut(u64, Option<u64>),
+    phase: &mut dyn FnMut(&str),
     cancel: &CancelToken,
 ) -> Result<PathBuf, InstallError> {
     if !consent {
@@ -88,6 +91,9 @@ pub fn install(
         .download(steps.url(), &downloaded, None, progress, cancel)
         .map_err(InstallError::Download)?;
 
+    // The bar reached 100% when the last byte arrived; what follows takes a while and the screen
+    // says so ("unpacking", "checking", "installing") instead of looking stuck.
+    phase("unpacking");
     let artifact = match steps.prepare(&downloaded, work_dir) {
         Ok(a) => a,
         Err(e) => {
@@ -95,10 +101,12 @@ pub fn install(
             return Err(InstallError::Step(e));
         }
     };
+    phase("verifying");
     if let Err(why) = checker.verify(&artifact) {
         cleanup(&[&downloaded, &artifact]);
         return Err(InstallError::Signature(why));
     }
+    phase("installing");
     let result = steps.finish(&artifact).map_err(InstallError::Step);
     cleanup(&[&downloaded, &artifact]);
     result
@@ -331,6 +339,7 @@ mod tests {
             &checker,
             &w,
             &mut |_, _| {},
+            &mut |_| {},
             &CancelToken::new(),
         );
         assert_eq!(r, Err(InstallError::ConsentRequired));
@@ -359,6 +368,7 @@ mod tests {
             &checker,
             &w,
             &mut |_, _| {},
+            &mut |_| {},
             &CancelToken::new(),
         );
         assert_eq!(r, Ok(PathBuf::from("/installed/ollama")));
@@ -368,6 +378,35 @@ mod tests {
             !w.join("installer.bin").exists(),
             "the installer file is deleted afterwards"
         );
+        let _ = fs::remove_dir_all(&w);
+    }
+
+    #[test]
+    fn the_screen_is_told_about_each_step_after_the_last_byte() {
+        let s = server();
+        let calls = Calls::default();
+        let steps = FakeSteps {
+            url: s.url(),
+            calls: &calls,
+        };
+        let checker = Checker {
+            verdict: Ok(()),
+            calls: &calls,
+        };
+        let w = work("phases");
+        let mut phases: Vec<String> = Vec::new();
+        install(
+            true,
+            &dl(),
+            &steps,
+            &checker,
+            &w,
+            &mut |_, _| {},
+            &mut |p| phases.push(p.to_string()),
+            &CancelToken::new(),
+        )
+        .unwrap();
+        assert_eq!(phases, ["unpacking", "verifying", "installing"]);
         let _ = fs::remove_dir_all(&w);
     }
 
@@ -391,6 +430,7 @@ mod tests {
             &checker,
             &w,
             &mut |_, _| {},
+            &mut |_| {},
             &CancelToken::new(),
         );
         match r {
@@ -439,6 +479,7 @@ mod tests {
             &checker,
             &work("404"),
             &mut |_, _| {},
+            &mut |_| {},
             &CancelToken::new(),
         );
         assert_eq!(r, Err(InstallError::Download(DownloadError::Status(404))));
@@ -476,6 +517,7 @@ mod tests {
             &checker,
             &w,
             &mut |_, _| {},
+            &mut |_| {},
             &CancelToken::new(),
         );
         assert!(matches!(r, Err(InstallError::Step(_))));
@@ -570,6 +612,7 @@ mod tests {
             checker.as_ref(),
             &w,
             &mut |_, _| {},
+            &mut |_| {},
             &CancelToken::new(),
         );
         println!("real install result: {r:?}");

@@ -51,6 +51,8 @@ export interface HotkeyPermission {
 export interface Progress {
   received: number;
   total: number | null;
+  /** Work that follows the last byte (the bar is already full): "unpacking", "verifying", ... */
+  phase?: string | null;
 }
 
 export interface PullProgress {

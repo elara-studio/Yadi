@@ -111,7 +111,11 @@ function fakeApi(
 }
 const pushPull = (api: FakeApi, p: { status: string; completed?: number; total?: number }) =>
   act(() => (api as unknown as { __pull: (x: typeof p) => void }).__pull(p));
-const pushDownload = (api: FakeApi, id: string, p: { received: number; total: number | null }) =>
+const pushDownload = (
+  api: FakeApi,
+  id: string,
+  p: { received: number; total: number | null; phase?: string },
+) =>
   act(() => (api as unknown as { __download: (i: string, x: typeof p) => void }).__download(id, p));
 
 const consented = (...done: Parameters<typeof withStep>[1][]): SetupState => {
@@ -348,7 +352,7 @@ describe("SetupWizard", () => {
       await waitFor(() => expect(api.ollamaPull).toHaveBeenCalledWith(TIER.llm_tag));
       expect(stepCount()).toBe("Step 3 of 6");
       pushPull(api, { status: "pulling manifest" });
-      expect(screen.getByTestId("progress-text")).toHaveTextContent("pulling manifest");
+      expect(screen.getByTestId("progress-text")).toHaveTextContent("Contacting the model library");
       pushPull(api, { status: "pulling abc123", completed: 500_000_000, total: 2_000_000_000 });
       pushPull(api, { status: "pulling abc123", completed: 1_000_000_000, total: 2_000_000_000 });
       const text = screen.getByTestId("progress-text");
@@ -357,6 +361,26 @@ describe("SetupWizard", () => {
       expect(text).toHaveTextContent("500.0 MB/s");
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(api.ollamaCancelPull).toHaveBeenCalledWith(TIER.llm_tag);
+      await act(async () => finish());
+    });
+
+    it("after the last byte the bar shows what is happening instead of sitting at 100%", async () => {
+      let finish: () => void = () => {};
+      const api = fakeApi(
+        { ollamaPull: vi.fn(() => new Promise<void>((r) => (finish = r))) },
+        consented("ollama"),
+      );
+      renderWizard(api);
+      await waitFor(() => expect(api.ollamaPull).toHaveBeenCalled());
+      pushPull(api, { status: "pulling abc123", completed: 2_000_000_000, total: 2_000_000_000 });
+      expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+      pushPull(api, { status: "verifying sha256 digest" });
+      const bar = screen.getByRole("progressbar");
+      expect(bar).toHaveAttribute("aria-busy", "true");
+      expect(bar).not.toHaveAttribute("aria-valuenow");
+      expect(screen.getByTestId("progress-text")).toHaveTextContent("Checking it is genuine…");
+      pushPull(api, { status: "writing manifest" });
+      expect(screen.getByTestId("progress-text")).toHaveTextContent("Finishing up…");
       await act(async () => finish());
     });
 
@@ -438,6 +462,31 @@ describe("SetupWizard", () => {
       await act(async () => finish());
       await waitFor(() => expect(order).toEqual(["stt-stream", "stt-final"]));
       expect(api.downloadModel).toHaveBeenCalledWith("stt-stream", false);
+    });
+
+    it("unpacking a speech model is shown as busy, not as a stuck 100%", async () => {
+      let finish: () => void = () => {};
+      const api = fakeApi(
+        {
+          downloadModel: vi.fn(async (id: string) => {
+            if (id === "stt-stream") await new Promise<void>((r) => (finish = r));
+          }),
+        },
+        consented("ollama", "llm"),
+      );
+      renderWizard(api);
+      await waitFor(() => expect(api.downloadModel).toHaveBeenCalledWith("stt-stream", false));
+      pushDownload(api, "stt-stream", { received: 310_414_022, total: 310_414_022 });
+      // Even before the backend names the phase, a full bar is already "finishing".
+      expect(screen.getByRole("progressbar")).toHaveAttribute("aria-busy", "true");
+      expect(screen.getByTestId("progress-text")).toHaveTextContent(
+        "Finishing up: live speech model…",
+      );
+      pushDownload(api, "stt-stream", { received: 0, total: null, phase: "unpacking" });
+      expect(screen.getByTestId("progress-text")).toHaveTextContent(
+        "Unpacking: live speech model…",
+      );
+      await act(async () => finish());
     });
 
     it("skips what is installed already, and everything when both are (idempotent)", async () => {

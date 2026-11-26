@@ -75,10 +75,10 @@ export function createTauriSetupApi(): SetupApi {
     downloadModel: (id, force) => invoke("download_model", { id, force }),
     cancelDownload: (id) => invoke("cancel_download", { id }),
     onDownloadProgress: (id, cb) =>
-      subscribe<{ id: string; received: number; total: number | null }>(
+      subscribe<{ id: string; received: number; total: number | null; phase?: string }>(
         "download:progress",
         (p) => {
-          if (p.id === id) cb({ received: p.received, total: p.total });
+          if (p.id === id) cb({ received: p.received, total: p.total, phase: p.phase ?? null });
         },
       ),
 

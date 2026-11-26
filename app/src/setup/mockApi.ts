@@ -69,6 +69,11 @@ export function createMockSetupApi(options: MockOptions = {}): SetupApi {
   }
   const emitDownload = (id: string, total: number) => (received: number) =>
     dlListeners.get(id)?.forEach((cb) => cb({ received, total }));
+  /** The work after the last byte, as the real backend reports it. */
+  const emitPhase = async (id: string, phase: string) => {
+    dlListeners.get(id)?.forEach((cb) => cb({ received: 0, total: null, phase }));
+    await sleep(delay * 4);
+  };
 
   return {
     mock: true,
@@ -113,6 +118,9 @@ export function createMockSetupApi(options: MockOptions = {}): SetupApi {
         180_000_000,
         emitDownload("ollama-installer", 180_000_000),
       );
+      for (const phase of ["unpacking", "verifying", "installing"]) {
+        await emitPhase("ollama-installer", phase);
+      }
       ollama = { state: "installed", path: "/Applications/Ollama.app" };
     },
     ollamaStart: async () => {
@@ -139,6 +147,7 @@ export function createMockSetupApi(options: MockOptions = {}): SetupApi {
       failIfScheduled("downloadModel");
       const total = id.includes("whisper") ? 208_576_005 : 310_414_022;
       await simulate(id, total, emitDownload(id, total));
+      await emitPhase(id, "unpacking");
       installed.add(id);
     },
     cancelDownload: async (id) => void cancelled.add(id),

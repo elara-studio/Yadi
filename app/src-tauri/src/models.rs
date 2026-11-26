@@ -290,12 +290,19 @@ pub async fn download_model(
     let result = tauri::async_runtime::spawn_blocking({
         let id = id.clone();
         move || {
-            install(&root, &id, &url, &sha, &token, &mut |received, total| {
+            let on_progress = &mut |received: u64, total: Option<u64>| {
                 let _ = emit_app.emit(
                     "download:progress",
                     json!({ "id": id, "received": received, "total": total }),
                 );
-            })
+            };
+            let on_phase = &mut |name: &str| {
+                let _ = emit_app.emit(
+                    "download:progress",
+                    json!({ "id": id, "received": 0, "total": null, "phase": name }),
+                );
+            };
+            install(&root, &id, &url, &sha, &token, on_progress, on_phase)
         }
     })
     .await
@@ -329,6 +336,7 @@ pub fn install(
     sha256: &str,
     cancel: &CancelToken,
     progress: &mut dyn FnMut(u64, Option<u64>),
+    phase: &mut dyn FnMut(&str),
 ) -> Result<(), String> {
     if installed_dir(root, id).is_some() {
         return Ok(());
@@ -350,6 +358,9 @@ pub fn install(
         .download(url, &archive_path, Some(sha256), &mut throttled, cancel)
         .map_err(|e| e.to_string())?;
 
+    // The bar is full once the last byte has arrived; unpacking a big archive takes a while after
+    // that, so the screen is told what is going on.
+    phase("unpacking");
     // Unpack beside the final folder, then rename, so a half-extracted model is never "installed".
     let staging = root.join(format!("{id}.extracting"));
     let dest = root.join(id);
@@ -564,6 +575,7 @@ mod tests {
                     }
                 }
             },
+            &mut |_| {},
         )
         .expect("real download + verify + extract");
         let dir = installed_dir(&root, &id).expect("installed marker");
