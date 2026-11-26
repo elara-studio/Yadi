@@ -193,7 +193,7 @@ export const microphoneStep: StepDef = {
 };
 
 export const SUMMON_NOT_GRANTED_MESSAGE =
-  "Yadi still needs Accessibility permission to notice when you hold Y. Turn Yadi on in System Settings > Privacy & Security > Accessibility, then press Try again, or skip this and use Cmd+Shift+Y instead.";
+  "Yadi still needs Accessibility permission to notice when you hold Y. Turn Yadi on in System Settings > Privacy & Security > Accessibility, then press Try again. If Yadi already looks switched on there, select it, remove it with the − button, and press Try again. Or skip this and use Cmd+Shift+Y instead.";
 
 export const summonStep: StepDef = {
   id: "summon",
@@ -205,6 +205,7 @@ export const summonStep: StepDef = {
   async run(ctx) {
     if (!isMac(ctx)) return; // nothing to grant on Windows
     // The only place Yadi asks: never at launch, and never when it is already allowed.
+    // The request waits (up to a minute) for Yadi to be switched on in System Settings.
     if (!(await ctx.api.hotkeyStatus()).accessibility) {
       await ctx.api.hotkeyRequest();
       if (!(await ctx.api.hotkeyStatus()).accessibility)

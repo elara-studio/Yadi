@@ -121,10 +121,16 @@ pub fn hotkey_permission_status() -> PermissionStatus {
     permissions::status()
 }
 
-/// Shows the macOS Accessibility prompt (a no-op elsewhere).
+/// Shows the macOS Accessibility prompt and waits (up to 60 s) for Yadi to be switched on in
+/// System Settings, so setup can move on by itself. A no-op elsewhere.
 #[tauri::command]
-pub fn hotkey_request_permission() {
-    permissions::request();
+pub async fn hotkey_request_permission(app: AppHandle) -> Result<PermissionStatus, String> {
+    let bundle_id = app.config().identifier.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        permissions::request_and_wait(&bundle_id, Duration::from_secs(60))
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

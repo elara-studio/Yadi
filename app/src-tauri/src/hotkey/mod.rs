@@ -76,7 +76,7 @@ pub fn apply(app: &AppHandle, settings: &Settings, ask: bool) -> Result<(), Stri
                 if !ask {
                     return Err("Hold-Y needs Accessibility permission".into());
                 }
-                permissions::request();
+                permissions::request(&app.config().identifier);
             }
             state
                 .ensure_started(summon_fn(app))
@@ -212,8 +212,8 @@ pub fn get_notice(state: tauri::State<NoticeState>) -> Option<Notice> {
 }
 
 #[tauri::command]
-pub fn open_permission_settings() -> Result<(), String> {
-    permissions::open_settings()
+pub fn open_permission_settings(app: AppHandle) -> Result<(), String> {
+    permissions::open_settings(&app.config().identifier)
 }
 
 #[cfg(test)]

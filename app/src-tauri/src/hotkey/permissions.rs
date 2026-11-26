@@ -55,9 +55,9 @@ mod mac {
         }
     }
 
-    /// Shows the system Accessibility prompt (once per app; afterwards macOS only lists the
-    /// app in System Settings).
-    pub fn request() {
+    /// Shows the system Accessibility prompt (once per app entry; afterwards macOS only lists
+    /// the app in System Settings).
+    pub fn prompt() {
         // SAFETY: the dictionary lives for the duration of the call; the key is the system
         // constant for "show the prompt".
         unsafe {
@@ -76,9 +76,58 @@ pub fn status() -> PermissionStatus {
     mac::status()
 }
 
+/// Asks for Accessibility: shows the system prompt, which offers to open System Settings.
+///
+/// A build that is not signed with a stable certificate (any local build) gets a new identity
+/// each time it is built, and macOS ties the Accessibility grant to that identity. After
+/// installing a new build, System Settings therefore still shows Yadi switched on, yet the new
+/// build is not trusted and macOS will not prompt again. So when Yadi is not trusted, its own
+/// stale entry (`bundle_id`) is removed first, once per run, which makes macOS ask afresh. Only
+/// done from inside an app bundle: in development the permission belongs to the terminal.
 #[cfg(target_os = "macos")]
-pub fn request() {
-    mac::request()
+pub fn request(bundle_id: &str) {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static FORGOT_STALE_ENTRY: AtomicBool = AtomicBool::new(false);
+
+    if !status().all_granted()
+        && running_from_app_bundle()
+        && !FORGOT_STALE_ENTRY.swap(true, Ordering::SeqCst)
+    {
+        match std::process::Command::new("/usr/bin/tccutil")
+            .args(["reset", "Accessibility", bundle_id])
+            .output()
+        {
+            Ok(out) if out.status.success() => {
+                log::info!("removed a stale Accessibility entry so macOS asks again")
+            }
+            Ok(out) => log::warn!(
+                "could not reset the Accessibility entry: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            ),
+            Err(e) => log::warn!("could not run tccutil: {e}"),
+        }
+    }
+    mac::prompt()
+}
+
+#[cfg(target_os = "macos")]
+fn running_from_app_bundle() -> bool {
+    std::env::current_exe()
+        .map(|p| is_inside_app_bundle(&p))
+        .unwrap_or(false)
+}
+
+/// `…/Something.app/Contents/MacOS/binary`
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn is_inside_app_bundle(exe: &std::path::Path) -> bool {
+    let mut up = exe.ancestors().skip(1);
+    matches!(
+        (up.next(), up.next(), up.next()),
+        (Some(macos), Some(contents), Some(app))
+            if macos.file_name() == Some("MacOS".as_ref())
+                && contents.file_name() == Some("Contents".as_ref())
+                && app.extension() == Some("app".as_ref())
+    )
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -90,14 +139,32 @@ pub fn status() -> PermissionStatus {
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn request() {}
+pub fn request(_bundle_id: &str) {}
 
-/// Opens the System Settings pane for the first missing permission (macOS only).
-pub fn open_settings() -> Result<(), String> {
+/// Opens the System Settings pane for the missing permission (macOS only), after asking for it
+/// so that Yadi is listed there (and a stale entry from an earlier build is replaced).
+pub fn open_settings(bundle_id: &str) -> Result<(), String> {
     let Some(url) = settings_url(status()) else {
         return Err("No permission is missing".into());
     };
+    request(bundle_id);
     open_url(url)
+}
+
+/// Asks for the permission, then waits up to `timeout` for it to be switched on, so the person
+/// can do that in System Settings without pressing anything in Yadi afterwards.
+pub fn request_and_wait(bundle_id: &str, timeout: std::time::Duration) -> PermissionStatus {
+    let step = std::time::Duration::from_millis(500);
+    if status().all_granted() {
+        return status();
+    }
+    request(bundle_id);
+    let mut waited = std::time::Duration::ZERO;
+    while !status().all_granted() && waited < timeout {
+        std::thread::sleep(step);
+        waited += step;
+    }
+    status()
 }
 
 #[cfg(target_os = "macos")]
@@ -136,6 +203,18 @@ mod tests {
         assert_eq!(settings_url(st(false, false)), Some(ACCESSIBILITY_PANE));
         assert_eq!(settings_url(st(false, true)), Some(ACCESSIBILITY_PANE));
         assert!(!st(false, true).all_granted());
+    }
+
+    #[test]
+    fn app_bundle_paths_are_recognised() {
+        use std::path::Path;
+        assert!(is_inside_app_bundle(Path::new(
+            "/Applications/Yadi.app/Contents/MacOS/app"
+        )));
+        assert!(!is_inside_app_bundle(Path::new(
+            "/Users/me/Yadi/app/src-tauri/target/debug/app"
+        )));
+        assert!(!is_inside_app_bundle(Path::new("/Contents/MacOS/app")));
     }
 
     #[test]

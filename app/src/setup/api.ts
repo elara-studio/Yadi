@@ -40,6 +40,7 @@ export interface SetupApi {
   micRequest(): Promise<MicStatus>;
 
   hotkeyStatus(): Promise<HotkeyPermission>;
+  /** Shows the system prompt, then waits up to a minute for the permission to be granted. */
   hotkeyRequest(): Promise<void>;
   /** Switches the summon method to the Cmd/Ctrl+Shift+Y chord. */
   useChordFallback(): Promise<void>;
@@ -88,7 +89,7 @@ export function createTauriSetupApi(): SetupApi {
     micRequest: () => invoke("mic_request_permission"),
 
     hotkeyStatus: () => invoke("hotkey_permission_status"),
-    hotkeyRequest: () => invoke("hotkey_request_permission"),
+    hotkeyRequest: async () => void (await invoke("hotkey_request_permission")),
     useChordFallback: async () => {
       const settings = await invoke<{ summon: Record<string, unknown> }>("get_settings");
       await invoke("set_settings", {
