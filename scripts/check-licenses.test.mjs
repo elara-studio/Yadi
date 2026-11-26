@@ -158,7 +158,7 @@ const NOTICE_DATA = {
       kind: "app",
       version: "0.1.0",
       license_spdx: "Apache-2.0",
-      attribution: "Copyright Elara Software.",
+      attribution: "Copyright Elara Software Services FZ-LLC.",
       source_url: "https://example.org/yadi",
       text_ids: ["aaa"],
     },
@@ -180,7 +180,7 @@ test("renderNotices lists every component with its licence and attribution", () 
   assert.match(text, /^Yadi: third-party notices/);
   assert.match(text, /APPLICATION/);
   assert.match(text, /LIBRARIES/);
-  assert.match(text, /Yadi 0\.1\.0\n {2}Licence: Apache-2\.0\n {2}Copyright Elara Software\./);
+  assert.match(text, /Yadi 0\.1\.0\n {2}Licence: Apache-2\.0\n {2}Copyright Elara Software Services FZ-LLC\./);
   assert.match(text, /Source: https:\/\/example\.org\/yadi/);
   assert.match(text, /serde 1\.0\.0\n {2}Licence: MIT OR Apache-2\.0/);
 });

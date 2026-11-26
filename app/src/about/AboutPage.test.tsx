@@ -12,7 +12,7 @@ const fixture: LicenseData = {
       kind: "app",
       version: "0.1.0",
       license_spdx: "Apache-2.0",
-      attribution: "Copyright Elara Software",
+      attribution: "Copyright Elara Software Services FZ-LLC",
       text_ids: ["t-apache"],
     },
     {

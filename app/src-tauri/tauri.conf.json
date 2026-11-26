@@ -23,7 +23,7 @@
     "category": "Productivity",
     "shortDescription": "Speak unfiltered thoughts, get a clean prompt. Local-first.",
     "longDescription": "Yadi turns what you say into a clear, structured prompt for an AI assistant. Speech recognition and the language model run on your own computer; nothing is sent to a server.",
-    "copyright": "Copyright Elara Software",
+    "copyright": "Copyright Elara Software Services FZ-LLC",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
