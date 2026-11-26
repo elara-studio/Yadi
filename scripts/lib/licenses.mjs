@@ -22,6 +22,8 @@ export const ALLOWED_SPDX = [
   "0BSD",
   "Zlib",
   "CC-BY-4.0",
+  // Fonts (Outfit). Added by the project owner on 2026-11-26.
+  "OFL-1.1",
 ];
 
 export const UNVERIFIED = "UNVERIFIED";

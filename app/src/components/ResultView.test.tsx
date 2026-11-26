@@ -24,7 +24,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("ResultView", () => {
-  it("shows the prompt in a monospace card", () => {
+  it("shows the prompt in a card", () => {
     render(<ResultView result={result()} revealMs={0} />);
     expect(screen.getByTestId("prompt-text")).toHaveTextContent("Task: Fix the sink.");
     expect(screen.getByTestId("prompt-text").tagName).toBe("PRE");

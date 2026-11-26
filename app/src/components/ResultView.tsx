@@ -96,7 +96,7 @@ function useReveal(text: string, ms: number): string {
   return text.slice(0, shown);
 }
 
-/** The finished prompt in a monospace card, with Copy, the token estimate and recent prompts. */
+/** The finished prompt in a card, with Copy, the token estimate and recent prompts. */
 export function ResultView({ result, revealMs = 450, attachmentText, onRegenerate }: Props) {
   const visible = useReveal(result.prompt, revealMs);
   const older = result.recent.slice(1);
