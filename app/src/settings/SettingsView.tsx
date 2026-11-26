@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { getVersion } from "@tauri-apps/api/app";
 import { HoldTest } from "./HoldTest";
+import { ShortcutRecorder } from "./ShortcutRecorder";
 import { UpdateChecker } from "./UpdateChecker";
 import { VocabularyEditor } from "./VocabularyEditor";
 import {
@@ -183,15 +184,7 @@ export function SettingsView({
             <HoldTest thresholdMs={threshold_ms} />
           </>
         ) : (
-          <label className="settings-row">
-            Shortcut
-            <input
-              type="text"
-              aria-label="Shortcut"
-              value={chord}
-              onChange={(e) => updateSummon({ chord: e.target.value })}
-            />
-          </label>
+          <ShortcutRecorder chord={chord} onChange={(c) => updateSummon({ chord: c })} />
         )}
       </fieldset>
 

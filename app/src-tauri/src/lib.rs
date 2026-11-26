@@ -102,6 +102,8 @@ pub fn run() {
             updates::install_update,
             updates::open_release_page,
             hotkey::get_notice,
+            hotkey::summon_capture_start,
+            hotkey::summon_capture_end,
             hotkey::open_permission_settings,
         ])
         .on_menu_event(|app, event| windows::menu::handle_menu_event(app, event.id().as_ref()))

@@ -28,6 +28,9 @@ const invoke = vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
   switch (cmd) {
     case "get_settings":
       return structuredClone(backend.settings);
+    case "summon_capture_start":
+    case "summon_capture_end":
+      return undefined;
     case "set_settings":
       if (backend.failSave) throw backend.failSave;
       backend.settings = structuredClone(args!.settings as Settings);
@@ -119,9 +122,9 @@ describe("summon", () => {
     render(<SettingsView onBack={() => {}} />);
     await user.click(await screen.findByLabelText("A keyboard shortcut"));
     expect(screen.queryByLabelText("Hold time in milliseconds")).not.toBeInTheDocument();
-    const field = screen.getByLabelText("Shortcut");
-    await user.clear(field);
-    await user.type(field, "Alt+Space");
+    await user.click(screen.getByRole("button", { name: "Change" }));
+    await act(async () => void fireEvent.keyDown(window, { code: "Space", altKey: true }));
+    expect(screen.getByTestId("shortcut-keys")).toHaveTextContent(/Alt\+Space|⌥Space/);
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(backend.settings.summon).toEqual({

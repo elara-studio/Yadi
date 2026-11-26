@@ -167,6 +167,18 @@ fn watch_permissions(app: &AppHandle, settings: &Settings) {
         .ok();
 }
 
+/// Settings is recording a new shortcut: the current summon chord stops listening meanwhile.
+#[tauri::command]
+pub fn summon_capture_start(app: AppHandle) -> Result<(), String> {
+    chord::pause(&app)
+}
+
+/// Recording ended (saved, cancelled or the screen closed): the summon chord listens again.
+#[tauri::command]
+pub fn summon_capture_end(app: AppHandle) -> Result<(), String> {
+    chord::resume(&app)
+}
+
 #[tauri::command]
 pub fn get_notice(state: tauri::State<NoticeState>) -> Option<Notice> {
     state.0.lock().unwrap_or_else(|e| e.into_inner()).clone()
