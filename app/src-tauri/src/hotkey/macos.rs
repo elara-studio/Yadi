@@ -114,7 +114,7 @@ fn handle(ctx: &Ctx, etype: CGEventType, event: &CGEvent) -> CallbackResult {
         CGEventType::KeyDown | CGEventType::KeyUp => {}
         _ => return CallbackResult::Keep,
     }
-    if !ctx.shared.enabled() {
+    if !ctx.shared.active() {
         return CallbackResult::Keep;
     }
     // Our own replayed keys carry a tag: never process them again.

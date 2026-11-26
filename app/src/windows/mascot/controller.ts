@@ -87,6 +87,9 @@ export type TranscriptEditEvent =
 
 export type ChatView = "chat" | "about" | "settings";
 
+/** The chat window says whether Settings is on screen (payload: boolean). */
+export const SETTINGS_OPEN_EVENT = "app:settings-open";
+
 export interface ControllerPorts {
   showChat(): void | Promise<void>;
   hideChat(): void | Promise<void>;
@@ -144,8 +147,13 @@ const EVENT_TYPES: ReadonlySet<string> = new Set([
   "NEW_SESSION",
 ]);
 
-/** Mascot animation for each app state. */
-export function mascotStateFor(model: Model): MascotState {
+/**
+ * Mascot animation for each app state. `settingsOpen`: the chat shows Settings, where Y is
+ * paused, so a ready or finished Yadi waits quietly instead of inviting a key press. Recording
+ * and processing keep showing, because that work really is still going on.
+ */
+export function mascotStateFor(model: Model, settingsOpen = false): MascotState {
+  if (settingsOpen && (model.state === "idle" || model.state === "result")) return "waiting";
   switch (model.state) {
     case "setup":
       return "setup";

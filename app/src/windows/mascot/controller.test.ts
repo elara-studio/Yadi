@@ -151,6 +151,16 @@ describe("mascotStateFor", () => {
   ] as const)("%s -> %s", (state, expected) => {
     expect(mascotStateFor({ state, editing: false, hasTranscript: false })).toBe(expected);
   });
+
+  it.each([
+    ["idle", "waiting"],
+    ["result", "waiting"],
+    ["recording", "listening"],
+    ["processing", "thinking"],
+    ["minimized", "asleep"],
+  ] as const)("with Settings open: %s -> %s", (state, expected) => {
+    expect(mascotStateFor({ state, editing: false, hasTranscript: false }, true)).toBe(expected);
+  });
 });
 
 describe("audio wiring", () => {

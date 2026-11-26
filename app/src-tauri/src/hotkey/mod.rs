@@ -217,6 +217,24 @@ pub fn summon_capture_end(app: AppHandle) -> Result<(), String> {
     chord::resume(&app)
 }
 
+/// Settings opened (`true`) or closed (`false`) in the chat window. While it is open the Hold-Y
+/// hook lets every key through, so Y types normally (for example in "My words") and never
+/// summons. The saved summon mode is not changed.
+#[tauri::command]
+pub fn summon_set_paused(app: AppHandle, paused: bool) {
+    if let Some(state) = app.try_state::<HookState>() {
+        state.shared.set_paused(paused);
+        log::info!(
+            "hold-Y {}",
+            if paused {
+                "paused for Settings"
+            } else {
+                "resumed"
+            }
+        );
+    }
+}
+
 #[tauri::command]
 pub fn get_notice(state: tauri::State<NoticeState>) -> Option<Notice> {
     state.0.lock().unwrap_or_else(|e| e.into_inner()).clone()

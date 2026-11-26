@@ -5,7 +5,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Mascot } from "../../components/Mascot";
 import type { Settings } from "../../settings/types";
-import { Controller, mascotStateFor } from "./controller";
+import { Controller, SETTINGS_OPEN_EVENT, mascotStateFor } from "./controller";
 import { PointerGesture } from "./pointerGesture";
 import { tauriPorts } from "./tauriPorts";
 
@@ -14,6 +14,7 @@ export function MascotWindow() {
   const [model, setModel] = useState(controller.model);
   const gesture = useRef(new PointerGesture());
   const [animated, setAnimated] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Settings > General > "Animate the mascot", read at start and on every save.
   useEffect(() => {
@@ -55,6 +56,7 @@ export function MascotWindow() {
       listen("audio:error", (e) => controller.handleAudioError(e.payload)),
       listen("tray:toggle", () => controller.toggleChat()),
       listen("tray:about", () => controller.openAbout()),
+      listen<boolean>(SETTINGS_OPEN_EVENT, (e) => setSettingsOpen(e.payload === true)),
     ];
     return () => {
       unsubscribe();
@@ -87,7 +89,7 @@ export function MascotWindow() {
         void invoke("show_context_menu");
       }}
     >
-      <Mascot state={mascotStateFor(model)} still={!animated} />
+      <Mascot state={mascotStateFor(model, settingsOpen)} still={!animated} />
     </div>
   );
 }

@@ -92,7 +92,7 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
 /// Returns true to swallow the event.
 unsafe fn process(wparam: WPARAM, lparam: LPARAM) -> bool {
     let Some(ctx) = CTX.get() else { return false };
-    if !ctx.shared.enabled() {
+    if !ctx.shared.active() {
         return false;
     }
     // SAFETY: for WH_KEYBOARD_LL with code HC_ACTION, lparam points to a KBDLLHOOKSTRUCT.

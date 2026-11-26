@@ -125,6 +125,11 @@ samp {
   animation: wave 2.6s ease-in-out infinite;
 }
 
+/* Settings is open (Y paused): breathes calmly, nothing to press yet. */
+.mascot--waiting .mascot-img {
+  animation: breathe 4s ease-in-out infinite;
+}
+
 /* Ready to record: bobs, with a little wave every few seconds. */
 .mascot--idle .mascot-img {
   animation: bob-wave 5s ease-in-out infinite;

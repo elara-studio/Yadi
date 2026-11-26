@@ -4,8 +4,8 @@ import type { AppEvent } from "@yadi/core";
 import { useKeyboardControls } from "./useKeyboardControls";
 import { Controller, mascotStateFor, type ControllerPorts } from "../mascot/controller";
 
-function Harness({ send }: { send: (e: AppEvent) => void }) {
-  useKeyboardControls(send);
+function Harness({ send, yEnabled }: { send: (e: AppEvent) => void; yEnabled?: boolean }) {
+  useKeyboardControls(send, yEnabled);
   return (
     <div>
       <textarea aria-label="editor" />
@@ -27,6 +27,15 @@ describe("useKeyboardControls", () => {
     const send = setup();
     fireEvent.keyDown(document.body, { key: "y" });
     expect(send).toHaveBeenCalledExactlyOnceWith({ type: "KEY_Y" });
+  });
+
+  it("with Y switched off (Settings open) Y emits nothing, but Esc still works", () => {
+    const send = vi.fn();
+    render(<Harness send={send} yEnabled={false} />);
+    const y = fireEvent.keyDown(document.body, { key: "y" });
+    expect(y).toBe(true); // not prevented
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(send).toHaveBeenCalledExactlyOnceWith({ type: "KEY_ESC" });
   });
 
   it("capital Y (caps lock) also works", () => {

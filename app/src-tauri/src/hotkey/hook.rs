@@ -44,6 +44,9 @@ pub struct Shared {
     engine: Mutex<Engine>,
     /// When false the hook passes every event through untouched (chord mode).
     enabled: AtomicBool,
+    /// True while the chat shows Settings: Y types normally everywhere and never summons.
+    /// Kept apart from `enabled` so pausing never changes the chosen summon mode.
+    paused: AtomicBool,
     /// True while the Yadi chat window has keyboard focus (own-window rule).
     chat_focused: AtomicBool,
     threshold_ms: AtomicU32,
@@ -54,6 +57,7 @@ impl Shared {
         Self {
             engine: Mutex::new(Engine::new(threshold_ms)),
             enabled: AtomicBool::new(false),
+            paused: AtomicBool::new(false),
             chat_focused: AtomicBool::new(false),
             threshold_ms: AtomicU32::new(threshold_ms),
         }
@@ -71,9 +75,26 @@ impl Shared {
     pub fn set_enabled(&self, on: bool) {
         let was = self.enabled.swap(on, Ordering::Relaxed);
         if was && !on {
-            let threshold = self.threshold_ms.load(Ordering::Relaxed);
-            self.engine().reset(threshold);
+            self.reset_engine();
         }
+    }
+
+    /// True when key events should go through the long-press engine: Hold-Y is the chosen
+    /// summon and Settings is not open.
+    pub fn active(&self) -> bool {
+        self.enabled() && !self.paused.load(Ordering::Relaxed)
+    }
+
+    pub fn set_paused(&self, paused: bool) {
+        let was = self.paused.swap(paused, Ordering::Relaxed);
+        if paused && !was {
+            self.reset_engine();
+        }
+    }
+
+    fn reset_engine(&self) {
+        let threshold = self.threshold_ms.load(Ordering::Relaxed);
+        self.engine().reset(threshold);
     }
 
     pub fn chat_focused(&self) -> bool {
@@ -135,7 +156,7 @@ fn spawn_ticker(shared: Arc<Shared>, on_summon: SummonFn) {
         .spawn(move || {
             loop {
                 thread::sleep(TICK);
-                if !shared.enabled() {
+                if !shared.active() {
                     continue;
                 }
                 let out = shared.engine().on_tick(now_ms());
@@ -148,5 +169,49 @@ fn spawn_ticker(shared: Arc<Shared>, on_summon: SummonFn) {
         });
     if let Err(e) = spawned {
         log::error!("could not start the hook timer: {e}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pausing_switches_the_hook_off_without_changing_the_mode() {
+        let shared = Shared::new(DEFAULT_THRESHOLD_MS);
+        shared.set_enabled(true);
+        assert!(shared.active());
+        shared.set_paused(true);
+        assert!(!shared.active());
+        assert!(shared.enabled(), "Hold-Y stays the chosen summon");
+        shared.set_paused(false);
+        assert!(shared.active());
+    }
+
+    #[test]
+    fn resuming_does_not_switch_on_a_hook_that_is_off() {
+        let shared = Shared::new(DEFAULT_THRESHOLD_MS);
+        shared.set_paused(true);
+        shared.set_paused(false);
+        assert!(!shared.active());
+    }
+
+    #[test]
+    fn pausing_forgets_a_y_that_was_being_held() {
+        use super::super::engine::RawKey;
+        use super::super::longpress::Mods;
+        let shared = Shared::new(DEFAULT_THRESHOLD_MS);
+        shared.set_enabled(true);
+        let y = RawKey {
+            down: true,
+            is_y: true,
+            code: 16,
+            mods: Mods::default(),
+            t: 0,
+        };
+        shared.engine().on_key(y, false);
+        assert!(shared.engine().is_tracking());
+        shared.set_paused(true);
+        assert!(!shared.engine().is_tracking());
     }
 }

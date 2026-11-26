@@ -2,9 +2,11 @@ import mascotUrl from "../assets/mascot/mascot.png";
 
 /**
  * What the mascot is doing. `asleep` is the hidden-chat state (click to start); `setup` is the
- * first-run wizard; the rest follow one prompt from "ready to record" to "copy it".
+ * first-run wizard; `waiting` is Settings being open (Y is paused there); the rest follow one
+ * prompt from "ready to record" to "copy it".
  */
-export type MascotState = "asleep" | "setup" | "idle" | "listening" | "thinking" | "done";
+export type MascotState =
+  "asleep" | "setup" | "waiting" | "idle" | "listening" | "thinking" | "done";
 
 /**
  * What the thought bubble says: the next thing to do, so nobody has to remember the keys.
@@ -14,6 +16,7 @@ export type MascotState = "asleep" | "setup" | "idle" | "listening" | "thinking"
 export const MASCOT_STATUS: Record<MascotState, string> = {
   asleep: "Long press on Y to call me back",
   setup: "Let's get you set up",
+  waiting: "Ready when you're done in Settings",
   idle: "Press Y when you're ready to record",
   listening: "Press Y when you're done",
   thinking: "Thinking…",

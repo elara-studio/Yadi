@@ -19,6 +19,7 @@ import { SettingsView } from "../../settings/SettingsView";
 import { SetupWizard } from "../../setup/SetupWizard";
 import { createTauriSetupApi, isMockSetup, type SetupApi } from "../../setup/api";
 import { createMockSetupApi } from "../../setup/mockApi";
+import { SETTINGS_OPEN_EVENT } from "../mascot/controller";
 import type {
   AppStatePayload,
   ChatView,
@@ -75,7 +76,14 @@ export function ChatWindow() {
   const [processError, setProcessError] = useState<ProcessErrorPayload | null>(null);
   const [transcript, setTranscript] = useState<TranscriptSnapshot>({ segments: [], partial: "" });
 
-  useKeyboardControls(sendToController);
+  // Settings on screen: Y types normally (e.g. in "My words") and neither records nor summons.
+  // A hidden chat may still remember the Settings view, so it only counts while it is shown.
+  const settingsOpen = view === "settings" && app.state !== "minimized";
+  useKeyboardControls(sendToController, !settingsOpen);
+  useEffect(() => {
+    void invoke("summon_set_paused", { paused: settingsOpen }).catch(() => {});
+    void emit(SETTINGS_OPEN_EVENT, settingsOpen);
+  }, [settingsOpen]);
   // Files can be added while talking or reading the result, not while the prompt is made.
   const attachments = useAttachments(
     app.state === "idle" || app.state === "recording" || app.state === "result",

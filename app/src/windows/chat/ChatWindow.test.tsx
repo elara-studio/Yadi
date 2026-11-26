@@ -33,6 +33,10 @@ vi.mock("../../setup/SetupWizard", () => ({
 
 const { ChatWindow, KEY_HINT, RESULT_KEY_HINT } = await import("./ChatWindow");
 
+/** Arguments of the most recent `summon_set_paused` call. */
+const lastPause = () =>
+  invoke.mock.calls.filter(([cmd]) => cmd === "summon_set_paused").at(-1)?.[1];
+
 describe("ChatWindow", () => {
   beforeEach(() => {
     emit.mockClear();
@@ -126,6 +130,40 @@ describe("ChatWindow", () => {
     await act(async () => {});
     expect(invoke).toHaveBeenCalledWith("get_settings");
     expect(screen.queryByText(KEY_HINT)).not.toBeInTheDocument();
+  });
+
+  it("while Settings is shown, Y types normally and Hold-Y is paused; leaving resumes it", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+    expect(lastPause()).toEqual({ paused: false });
+
+    fireEvent.click(screen.getByLabelText("Settings"));
+    await act(async () => {});
+    expect(invoke).toHaveBeenCalledWith("summon_set_paused", { paused: true });
+    expect(emit).toHaveBeenCalledWith("app:settings-open", true);
+    emit.mockClear();
+    fireEvent.keyDown(document.body, { key: "y" });
+    expect(emit).not.toHaveBeenCalledWith("app:event", { type: "KEY_Y" });
+
+    act(() => handlers.get("app:view")?.({ payload: { view: "chat" } }));
+    await act(async () => {});
+    expect(lastPause()).toEqual({ paused: false });
+    expect(emit).toHaveBeenCalledWith("app:settings-open", false);
+    fireEvent.keyDown(document.body, { key: "y" });
+    expect(emit).toHaveBeenCalledWith("app:event", { type: "KEY_Y" });
+  });
+
+  it("hiding the chat on the Settings screen resumes Hold-Y", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    act(() => handlers.get("app:state")?.({ payload: { state: "idle", editing: false } }));
+    fireEvent.click(screen.getByLabelText("Settings"));
+    await act(async () => {});
+    expect(invoke).toHaveBeenCalledWith("summon_set_paused", { paused: true });
+    act(() => handlers.get("app:state")?.({ payload: { state: "minimized", editing: false } }));
+    await act(async () => {});
+    expect(lastPause()).toEqual({ paused: false });
   });
 
   it("shows the transcript: finished segments plus the revising partial", async () => {

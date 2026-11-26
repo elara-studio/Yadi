@@ -104,6 +104,7 @@ pub fn run() {
             hotkey::get_notice,
             hotkey::summon_capture_start,
             hotkey::summon_capture_end,
+            hotkey::summon_set_paused,
             hotkey::open_permission_settings,
         ])
         .on_menu_event(|app, event| windows::menu::handle_menu_event(app, event.id().as_ref()))
