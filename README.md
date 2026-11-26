@@ -1,18 +1,105 @@
-# Yadi
+<p align="center">
+  <img src=".github/readme/hero.svg" alt="Yadi, a friendly orange hand, waves hello: Ramble out loud. Get a clean prompt." width="100%">
+</p>
 
-Speak your unfiltered thoughts. Yadi turns them into a clean, structured prompt you can paste into
-any AI assistant. Speech recognition and the language model run **on your own computer**: after the
-one-time setup download, Yadi works offline (it only goes online to check for updates when you ask).
+<p align="center">
+  <a href="#-meet-yadi">Meet Yadi</a> ·
+  <a href="#-early-days-an-honest-status">Status</a> ·
+  <a href="#-why-its-safe-to-use">Privacy</a> ·
+  <a href="#-try-it">Try it</a> ·
+  <a href="#-troubleshooting">Help</a>
+</p>
 
-> **Status: pre-release.** The app is built and tested, but there are no signed installers yet and
-> the language models have not all been scored (see "Language models" below).
+## 👋 Meet Yadi
 
-Platforms: macOS (Apple Silicon first) and Windows 10/11 (64-bit). Stack: Tauri 2 (Rust), React,
-TypeScript, Vite, pnpm workspace.
+Hi, this is Yadi: a little orange hand that waves at you from the edge of your screen.
 
-## Install
+Hold **Y**, say what you need the way it comes out (ums, restarts, "no wait" and all), and Yadi
+hands you back a clean, structured prompt to paste into any AI assistant. Speech recognition and
+the language model both run **on your own computer**, so after a one-time setup Yadi works offline.
 
-There is no public download yet. To run it from source:
+## ✨ From blabbing to a real prompt
+
+<p align="center">
+  <img src=".github/readme/blab-to-prompt.svg" alt="A rambling transcript (okay so um, I need to email my landlord, the heater's been broken since Monday, no wait, Sunday...) becomes a prompt with a Task, Context and Constraints." width="100%">
+</p>
+
+Yadi drops the filler, keeps your corrections and
+sorts what you said into **Task**, **Context**, **Constraints** and **Output**.
+
+The model never runs your prompt. It only picks out what you said, and every detail needs a
+quote from you as evidence. Plain code then lays the prompt out. That way Yadi can't invent
+requirements you never mentioned.
+
+## 🌱 Early days: an honest status
+
+Yadi is at **version 0.1**, its first version. Please treat it as an early preview:
+
+- **Only tested on macOS** (Apple Silicon). The Windows code is in the project but has not been
+  tried on a real Windows PC yet.
+- **Testing so far covers the basics:** setup, recording, the transcript, making the prompt and
+  copying it. Long sessions, unusual hardware and edge cases have had little attention.
+- **The models will get better.** A few small models have been scored on a 42-case test set, and
+  more tuning, more models and better prompts are on the way.
+- **No signed installer yet.** For now you run Yadi from source (see [Try it](#-try-it)).
+
+Much more is coming. If something breaks or feels off, an issue is very welcome.
+
+## 🧠 Your computer picks the model
+
+Yadi looks at your computer (memory, graphics card and free disk space) and picks the biggest
+language model that will run comfortably on it:
+
+| Your computer                              | Language model         | Download |
+| ------------------------------------------ | ---------------------- | -------- |
+| 8 GB of memory (6 GB minimum)              | IBM Granite 4 Micro 3B | ~2.1 GB  |
+| 16 GB of memory                            | Qwen3 4B Instruct      | ~2.5 GB  |
+| 32 GB of memory, or a 12 GB+ graphics card | Qwen3 8B               | ~5.2 GB  |
+
+**Your results depend on that model.** A bigger model understands long or tangled rambles better.
+A smaller one is faster but may miss more. You can switch model in Settings; Yadi warns you if one
+is too big for your computer. How each model scored is in
+[`eval/results/SUMMARY.md`](eval/results/SUMMARY.md), and the full list is in
+[`models.json`](app/src-tauri/resources/models.json).
+
+## 🔒 Why it's safe to use
+
+Your voice and your words never leave your computer. Here's how:
+
+- **Everything runs locally.** Speech recognition and the language model run on your computer. In
+  normal use the only connection Yadi makes is to Ollama on your own machine (`127.0.0.1`).
+- **Nothing is kept.** Audio only lives in memory while you record and is dropped as soon as the
+  transcript is done. Transcripts, prompts and attachments are never saved to disk and never
+  written to logs (tests check this). The only things saved are your settings and the words you
+  ask Yadi to remember.
+- **No accounts, no telemetry, no analytics.** Yadi doesn't know who you are and doesn't want to.
+- **Locked-down window.** The app's content-security policy blocks every outside connection.
+- **Checked downloads.** Every speech model is verified against a known SHA-256 fingerprint. The
+  Ollama installer's code signature is checked before it runs, and deleted if it doesn't match.
+- **Attachments are just data.** Files you drop in are read into memory, never run, and text inside
+  them can't change what Yadi writes.
+- **You say when it goes online.** Nothing is downloaded before you agree in setup, and updates are
+  only checked when you press the button.
+
+<details>
+<summary>Exactly what touches the network</summary>
+
+- **Setup:** speech models from `github.com`, the Ollama installer from `ollama.com`, and the
+  language model, which Ollama pulls from its own library.
+- **Settings > Check for updates:** reads Yadi's public release information from `api.github.com`
+  and downloads a new installer from `github.com` only when you press the button. The installer is
+  checked against the SHA-256 fingerprint GitHub publishes for it. Nothing about you is sent, and
+  nothing is checked in the background.
+
+That's all. The window's content-security policy and the app's HTTP permission list stop the
+interface from reaching anything except Ollama on `127.0.0.1`. The downloads above are made by
+Yadi's own code, which only fetches from those addresses.
+
+</details>
+
+## 🚀 Try it
+
+There is no public download yet. To run Yadi from source:
 
 ```sh
 pnpm install
@@ -20,26 +107,26 @@ pnpm dev          # runs the app in development mode
 pnpm build        # builds the installer (a .dmg on macOS, an NSIS .exe on Windows)
 ```
 
-You need Node 20+, pnpm, Rust (stable) and, on macOS, the Xcode Command Line Tools; on Windows, the
-MSVC build tools and WebView2. Installers are unsigned until a certificate is set up (see
-"Releasing" below).
+You need Node 20+, pnpm, Rust (stable) and the Xcode Command Line Tools on macOS. On Windows you
+need the MSVC build tools and WebView2. Installers are unsigned for now.
 
-## First run
+### First run
 
-The first time Yadi starts it opens a short setup:
+The first time Yadi starts, it walks you through a short setup:
 
-1. **Welcome:** shows your computer (memory, free disk), which models Yadi will use and how much
-   it will download, and asks for your OK. Nothing is downloaded before you agree.
-2. **Ollama:** the local engine that runs the language model. If it is not installed, Yadi can
+1. **Welcome:** shows your computer (memory, graphics, free disk), the models Yadi picked and how
+   much it will download, then asks for your OK. Nothing is downloaded before you agree.
+2. **Ollama:** the local engine that runs the language model. If it isn't installed, Yadi can
    download the official installer, check its signature and install it, with your consent.
-3. **Models:** the language model for your computer's size (about 2 to 5 GB) and two small speech
-   models. Downloads resume if interrupted.
-4. **Microphone and keyboard permissions**, then you are done. You can re-run or repair setup any
-   time from Settings.
+3. **Models:** the language model for your computer (about 2 to 5 GB) and two small speech
+   models. Downloads pick up where they left off if interrupted.
+4. **Microphone and keyboard permissions** (on macOS, Hold-Y needs Accessibility).
+5. **Done:** choose whether Yadi starts when you log in (ticked by default). You can re-run or
+   repair setup any time from Settings.
 
-Free space needed: roughly 4 to 5 GB for a typical computer, more for the biggest model.
+You'll need roughly 4 to 5 GB of free space on a typical computer, more for the biggest model.
 
-## Using Yadi
+## 🎙️ Using Yadi
 
 | Do this                          | What happens                                                                                                     |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -48,47 +135,27 @@ Free space needed: roughly 4 to 5 GB for a typical computer, more for the bigges
 | **Esc**                          | Stops what is happening. Esc again hides the window.                                                             |
 | **Double-click a word**          | Fix it. The pencil edits the whole transcript. Yadi offers to remember the word.                                 |
 | **Drop or paste files or text**  | Adds attachments (text, code, PDF, Word). Yadi uses their start to understand the topic and never rewrites them. |
-| **Copy**                         | Copies the prompt. **Copy with attachment text** adds the attachments' contents.                                 |
+| **Copy** (or press **C**)        | Copies the prompt. **Copy with attachment text** adds the attachments' contents.                                 |
+| **Drag the prompt**              | Drops it straight into another app.                                                                              |
 
-The mascot is always on screen; click it to open or hide the chat. The menu-bar (tray) icon has
-Show/Hide, About and Quit.
+Yadi the mascot always stays on screen: click it to open or hide the chat, or drag it where you
+like. The menu-bar icon has Show/Hide, About and Quit. If holding Y doesn't suit your computer, pick
+a shortcut such as **Cmd/Ctrl+Shift+Y** in Settings.
 
-If holding Y does not work on your computer, switch to a shortcut such as **Cmd/Ctrl+Shift+Y** in
-Settings. It is always available.
+Even after you quit Yadi, holding Y (or your shortcut) opens it again. Once setup is finished, a
+small listener with no window, microphone or model starts at login for this. It stays idle while
+Yadi is running.
 
-### Settings
+**Settings** has the hold time (250 to 900 ms, with a test), shortcut, microphone, language model,
+polishing the transcript after recording, start at login, mascot animations, your own words (names
+and jargon), re-run or repair setup, licences, check for updates and a reset.
 
-Hold time (250 to 900 ms, with a test), shortcut, microphone, language model (with a warning if it
-is too big for your computer), polishing the transcript after recording, start at login, your own
-words (names and jargon), re-run setup, licences, and a reset.
-
-### Language models
-
-Yadi picks a language model for your computer's memory. The candidates are listed in
-`app/src-tauri/resources/models.json`; `eval/results/SUMMARY.md` records how each scored on the
-prompt-quality eval set. A model marked "untested" has not been scored yet.
-
-## Privacy
-
-- **Everything stays on your computer.** Your voice, the transcript and the prompts are never sent
-  anywhere, never saved to disk and never written to logs. Audio exists only in memory while you
-  record and is dropped right after the transcript is finished.
-- **No telemetry, no accounts, no analytics.**
-- **The only network use** is the setup download (speech models from `github.com`, the Ollama
-  installer from `ollama.com`; the language model itself is pulled by Ollama from its own library)
-  and **Settings > Check for updates**, which reads Yadi's public release information from
-  `github.com` and downloads a new installer only when you press the button. Nothing about you is
-  sent, and nothing is checked in the background. During normal use the only connection Yadi makes
-  is to Ollama on your own machine (`127.0.0.1:11434`). The window's content-security policy and
-  the HTTP permission list allow nothing else; the update check runs in the app itself.
-- Attachments are read into memory for the session only, never executed, and treated as data: text
-  inside a file cannot change what Yadi writes.
-
-## Troubleshooting
+## 🛟 Troubleshooting
 
 - **Holding Y does nothing (macOS).** Yadi needs _Accessibility_ permission to see the held key.
   Open System Settings > Privacy & Security > Accessibility and switch Yadi on; Hold-Y starts
-  within a few seconds. Until then it uses Cmd+Shift+Y.
+  within a few seconds. Until then your shortcut works instead (Cmd+Shift+Y unless you changed
+  it).
 - **No sound level / "microphone denied".** System Settings > Privacy & Security > Microphone:
   switch Yadi on. On Windows: Settings > Privacy > Microphone.
 - **Antivirus warns about Yadi (Windows).** The Hold-Y feature uses a keyboard hook, which some
@@ -98,12 +165,14 @@ prompt-quality eval set. A model marked "untested" has not been scored yet.
   Ollama app yourself, or check that nothing else uses port 11434.
 - **"The language model is not installed".** Use "Open setup to install it" in the message, or
   Settings > Repair models.
-- **The prompt is slow the first time.** The model is loading into memory; later prompts are
-  faster. A smaller model (Settings) is faster still.
-- **Something else.** Run the app from a terminal to see its log; the log never contains your
+- **The first prompt is slow.** The model is loading into memory; later prompts are faster. A
+  smaller model (Settings) is faster still.
+- **Something else.** Run the app from a terminal to see its log. The log never contains your
   words, only events and errors.
 
-## Development
+## 🛠️ Development
+
+Built with Tauri 2 (Rust), React, TypeScript, Vite and a pnpm workspace.
 
 ```sh
 pnpm test         # vitest (all packages), script tests and cargo test
@@ -121,7 +190,8 @@ pnpm eval --model <ollama-tag> [--judge <ollama-tag>]   # score a model on eval/
 | `licenses/`      | Hand-written licence manifest for bundled runtimes and models                  |
 | `scripts/`       | Licence tooling and test fixtures                                              |
 
-Guidelines for contributors:
+<details>
+<summary>Guidelines for contributors</summary>
 
 - The prompt pipeline's last step is **code, not a model**: the model returns structured findings,
   every detail needs a quote of what the person said as evidence, and a template renders the
@@ -133,23 +203,33 @@ Guidelines for contributors:
 - Every new dependency must pass `pnpm check:licenses` (allow-list in
   `scripts/lib/licenses.mjs`; extending it needs a human decision).
 - Windows behaviour cannot be run on a Mac: keep platform code compiling for both
-  (`cargo clippy --target x86_64-pc-windows-msvc`) and add it to the manual QA list.
+  (`cargo clippy --target x86_64-pc-windows-msvc`).
 
-### Platform notes
+</details>
+
+<details>
+<summary>Platform notes and releasing</summary>
 
 - **macOS transparency:** the floating windows are transparent, which needs Tauri's
   `macOSPrivateApi` setting. Apps using it cannot be on the Mac App Store; direct distribution is
   unaffected.
 - On macOS Yadi runs without a Dock icon (only the mascot and the menu-bar icon).
+- Development builds (`pnpm dev`) do not register the login listener that reopens Yadi after
+  Quit, unless you set `YADI_SUMMON_LISTENER=1`. They also show licences only after
+  `pnpm check:licenses`, and macOS gives permissions to your terminal or editor, not to Yadi.
+- CI builds unsigned installers as workflow artifacts. Signing and notarisation are not part of
+  this repository's automation.
 
-### Releasing
+</details>
 
-Signing and notarisation are instructions only and are not part of this repository's automation.
-CI builds unsigned installers as workflow artifacts. The release owner follows the signing steps
-kept with the project's release notes.
-
-## Licence
+## 📄 Licence
 
 Application code: Apache-2.0 (see `LICENSE`; a placeholder until the copyright holder confirms).
 Bundled and downloaded third-party components, models and runtimes carry their own licences. They
 are listed in the app under **About** and in `THIRD_PARTY_NOTICES.txt` inside the installer.
+
+<p align="center">
+  <br>
+  <img src="app/src/assets/mascot/mascot.png" alt="Yadi waving goodbye" width="88"><br>
+  <sub>Thanks for stopping by. Yadi will be at the edge of your screen whenever you need it.</sub>
+</p>
