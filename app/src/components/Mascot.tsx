@@ -20,9 +20,10 @@ export const MASCOT_STATUS: Record<MascotState, string> = {
   done: "Press C to copy, or drag and drop the prompt",
 };
 
-export function Mascot({ state }: { state: MascotState }) {
+/** `still`: the person turned animations off in Settings. */
+export function Mascot({ state, still = false }: { state: MascotState; still?: boolean }) {
   return (
-    <div className={`mascot mascot--${state}`} data-state={state}>
+    <div className={`mascot mascot--${state}${still ? " mascot--still" : ""}`} data-state={state}>
       {/* Keyed by state so the bubble pops in again each time its message changes. */}
       <div key={state} className="bubble" role="status" aria-live="polite">
         {state === "listening" && <span className="bubble-rec" aria-hidden="true" />}

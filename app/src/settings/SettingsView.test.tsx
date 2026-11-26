@@ -20,6 +20,7 @@ const defaults = (): Settings => ({
   finalPass: { enabled: true, timeout_seconds: 20 },
   microphone: { device: null },
   llm: { model_id: null },
+  appearance: { animations: true },
 });
 
 const invoke = vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
@@ -278,6 +279,25 @@ describe("general", () => {
     await waitFor(() =>
       expect(backend.settings.finalPass).toEqual({ enabled: false, timeout_seconds: 20 }),
     );
+  });
+
+  it("mascot animations are on by default and can be turned off and saved", async () => {
+    const user = userEvent.setup();
+    render(<SettingsView onBack={() => {}} />);
+    const box = await screen.findByLabelText("Animate the mascot");
+    expect(box).toBeChecked();
+    await user.click(box);
+    expect(box).not.toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(backend.settings.appearance).toEqual({ animations: false }));
+  });
+
+  it("settings saved before the animation option existed count as animated", async () => {
+    const old = defaults();
+    delete old.appearance;
+    backend.settings = old;
+    render(<SettingsView onBack={() => {}} />);
+    expect(await screen.findByLabelText("Animate the mascot")).toBeChecked();
   });
 
   it("launch at login is off by default and switches on and off at once", async () => {

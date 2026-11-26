@@ -287,6 +287,14 @@ export function SettingsView({
             Start Yadi when I log in
           </label>
         )}
+        <label className="settings-row">
+          <input
+            type="checkbox"
+            checked={settings.appearance?.animations ?? true}
+            onChange={(e) => change({ ...settings, appearance: { animations: e.target.checked } })}
+          />
+          Animate the mascot
+        </label>
       </fieldset>
 
       {error && (

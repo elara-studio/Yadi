@@ -15,6 +15,8 @@ export interface Settings {
   microphone: { device: string | null };
   /** `model_id: null` = the model Yadi picks for this computer. */
   llm: { model_id: string | null };
+  /** `animations: false` = the mascot stands still. Missing in older data = on. */
+  appearance?: { animations: boolean };
 }
 
 /** One entry of the microphone list (`audio_list_devices`). */

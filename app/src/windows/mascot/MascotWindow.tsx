@@ -4,6 +4,7 @@ import { isSetupComplete, loadSetupState } from "@yadi/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Mascot } from "../../components/Mascot";
+import type { Settings } from "../../settings/types";
 import { Controller, mascotStateFor } from "./controller";
 import { PointerGesture } from "./pointerGesture";
 import { tauriPorts } from "./tauriPorts";
@@ -12,6 +13,16 @@ export function MascotWindow() {
   const controller = useMemo(() => new Controller(tauriPorts), []);
   const [model, setModel] = useState(controller.model);
   const gesture = useRef(new PointerGesture());
+  const [animated, setAnimated] = useState(true);
+
+  // Settings > General > "Animate the mascot", read at start and on every save.
+  useEffect(() => {
+    const apply = (s: Settings | null | undefined) =>
+      setAnimated(s?.appearance?.animations ?? true);
+    invoke<Settings>("get_settings").then(apply, () => {});
+    const off = listen<Settings>("settings:changed", (e) => apply(e.payload));
+    return () => void off.then((unlisten) => unlisten());
+  }, []);
 
   // First run (or unfinished setup): show the wizard instead of an idle chat.
   useEffect(() => {
@@ -76,7 +87,7 @@ export function MascotWindow() {
         void invoke("show_context_menu");
       }}
     >
-      <Mascot state={mascotStateFor(model)} />
+      <Mascot state={mascotStateFor(model)} still={!animated} />
     </div>
   );
 }

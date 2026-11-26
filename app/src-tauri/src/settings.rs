@@ -5,7 +5,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_global_shortcut::Shortcut;
 use tauri_plugin_store::StoreExt;
 
@@ -75,6 +75,20 @@ pub struct LlmSettings {
     pub model_id: Option<String>,
 }
 
+/// How Yadi looks.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AppearanceSettings {
+    /// The mascot bobs, waves and hops. Off = it stands still (its bubble still updates).
+    pub animations: bool,
+}
+
+impl Default for AppearanceSettings {
+    fn default() -> Self {
+        Self { animations: true }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -83,6 +97,16 @@ pub struct Settings {
     pub final_pass: FinalPassSettings,
     pub microphone: MicrophoneSettings,
     pub llm: LlmSettings,
+    pub appearance: AppearanceSettings,
+}
+
+/// Sent to every window after the settings changed, with the new settings as payload.
+pub const SETTINGS_CHANGED_EVENT: &str = "settings:changed";
+
+fn announce(app: &AppHandle, settings: &Settings) {
+    if let Err(e) = app.emit(SETTINGS_CHANGED_EVENT, settings) {
+        log::warn!("could not announce new settings: {e}");
+    }
 }
 
 fn clean_optional(value: Option<String>, max: usize) -> Option<String> {
@@ -162,6 +186,7 @@ pub fn set_settings(
     hotkey::apply(&app, &settings)?;
     save(&app, &settings)?;
     *state.0.lock().expect("settings lock") = settings.clone();
+    announce(&app, &settings);
     Ok(settings)
 }
 
@@ -173,6 +198,7 @@ pub fn reset_everything(app: AppHandle, state: State<SettingsState>) -> Result<S
     hotkey::apply(&app, &settings)?;
     save(&app, &settings)?;
     *state.0.lock().expect("settings lock") = settings.clone();
+    announce(&app, &settings);
     crate::vocabulary::clear(&app)?;
     log::info!("settings and vocabulary were reset");
     Ok(settings)
@@ -248,6 +274,15 @@ mod tests {
             long.normalized().microphone.device.unwrap().chars().count(),
             200
         );
+    }
+
+    #[test]
+    fn mascot_animations_default_to_on_and_load_from_old_files() {
+        assert!(Settings::default().appearance.animations);
+        let old: Settings = serde_json::from_str(r#"{"summon":{"mode":"chord"}}"#).unwrap();
+        assert!(old.appearance.animations);
+        let off: Settings = serde_json::from_str(r#"{"appearance":{"animations":false}}"#).unwrap();
+        assert!(!off.appearance.animations);
     }
 
     #[test]

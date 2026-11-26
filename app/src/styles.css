@@ -1005,3 +1005,10 @@ samp {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* Settings > "Animate the mascot" off: it stands still, the bubble just changes its text. */
+.mascot--still .mascot-img,
+.mascot--still .bubble,
+.mascot--still .bubble-rec {
+  animation: none !important;
+}
