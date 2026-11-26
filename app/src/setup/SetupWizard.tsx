@@ -114,6 +114,8 @@ export function SetupWizard({
   const [consentTick, setConsentTick] = useState(false);
   const [copied, setCopied] = useState(false);
   const [summon, setSummon] = useState("");
+  const [autostart, setAutostart] = useState(true);
+  const [finishing, setFinishing] = useState(false);
   const setupRef = useRef<SetupState | null>(null);
   const busyRef = useRef<SetupStepId | null>(null);
   const detected = useRef(new Set<string>());
@@ -221,6 +223,18 @@ export function SetupWizard({
   useEffect(() => {
     if (screen === "done") void api.summonDescription().then(setSummon, () => setSummon(""));
   }, [screen, api]);
+
+  // The login choice is applied when the person starts using Yadi. If the system refuses it,
+  // setup still finishes: the same switch is in Settings > General.
+  const finish = async () => {
+    setFinishing(true);
+    try {
+      await api.setAutostart(autostart);
+    } catch {
+      // see above
+    }
+    onFinished();
+  };
 
   const retry = () => {
     if (error && error.step !== "welcome") void runStep(error.step);
@@ -484,8 +498,16 @@ export function SetupWizard({
           <li>Press Y again: Yadi cleans them up into a short prompt.</li>
           <li>Press Copy and paste it into your AI tool.</li>
         </ol>
+        <label className="setup-consent">
+          <input
+            type="checkbox"
+            checked={autostart}
+            onChange={(e) => setAutostart(e.target.checked)}
+          />{" "}
+          Start Yadi when I log in
+        </label>
         <div className="setup-actions">
-          <button type="button" onClick={onFinished}>
+          <button type="button" disabled={finishing} onClick={() => void finish()}>
             Start using Yadi
           </button>
           {onOpenAbout && (

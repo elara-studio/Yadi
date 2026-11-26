@@ -48,6 +48,8 @@ export interface SetupApi {
   useHoldY(): Promise<void>;
   /** Short text for the finished screen, e.g. "Hold the Y key" or "Cmd+Shift+Y". */
   summonDescription(): Promise<string>;
+  /** Starts Yadi when the person logs in (`true`), or stops doing so. */
+  setAutostart(on: boolean): Promise<void>;
 
   appVersion(): Promise<string>;
 }
@@ -105,6 +107,10 @@ export function createTauriSetupApi(): SetupApi {
     summonDescription: async () => {
       const s = await invoke<{ summon: { mode: string; chord: string } }>("get_settings");
       return s.summon.mode === "chord" ? s.summon.chord : "Hold the Y key";
+    },
+    setAutostart: async (on) => {
+      const { enable, disable } = await import("@tauri-apps/plugin-autostart");
+      await (on ? enable() : disable());
     },
 
     appVersion: async () => {

@@ -95,6 +95,7 @@ function fakeApi(
     useChordFallback: vi.fn(async () => {}),
     useHoldY: vi.fn(async () => {}),
     summonDescription: vi.fn(async () => "Hold the Y key"),
+    setAutostart: vi.fn(async () => {}),
     appVersion: vi.fn(async () => "0.1.0"),
     ...over,
   };
@@ -720,7 +721,39 @@ describe("SetupWizard", () => {
       await user.click(screen.getByRole("button", { name: "About and licences" }));
       expect(onOpenAbout).toHaveBeenCalled();
       await user.click(screen.getByRole("button", { name: "Start using Yadi" }));
-      expect(onFinished).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onFinished).toHaveBeenCalledTimes(1));
+    });
+
+    it("starts Yadi at login by default", async () => {
+      const user = userEvent.setup();
+      const api = fakeApi({}, allDone());
+      const { onFinished } = renderWizard(api);
+      const box = await screen.findByRole("checkbox", { name: "Start Yadi when I log in" });
+      expect(box).toBeChecked();
+      await user.click(screen.getByRole("button", { name: "Start using Yadi" }));
+      await waitFor(() => expect(onFinished).toHaveBeenCalled());
+      expect(api.setAutostart).toHaveBeenCalledExactlyOnceWith(true);
+    });
+
+    it("unticking the box keeps Yadi out of the login items", async () => {
+      const user = userEvent.setup();
+      const api = fakeApi({}, allDone());
+      const { onFinished } = renderWizard(api);
+      await user.click(await screen.findByRole("checkbox", { name: "Start Yadi when I log in" }));
+      await user.click(screen.getByRole("button", { name: "Start using Yadi" }));
+      await waitFor(() => expect(onFinished).toHaveBeenCalled());
+      expect(api.setAutostart).toHaveBeenCalledExactlyOnceWith(false);
+    });
+
+    it("finishes even if the system refuses the login item", async () => {
+      const user = userEvent.setup();
+      const api = fakeApi(
+        { setAutostart: vi.fn(async () => Promise.reject("Not allowed")) },
+        allDone(),
+      );
+      const { onFinished } = renderWizard(api);
+      await user.click(await screen.findByRole("button", { name: "Start using Yadi" }));
+      await waitFor(() => expect(onFinished).toHaveBeenCalled());
     });
   });
 
@@ -833,7 +866,7 @@ describe("SetupWizard", () => {
       expect(await screen.findByText("Yadi is ready")).toBeInTheDocument();
       expect(await screen.findByTestId("summon-key")).toHaveTextContent("Hold the Y key");
       await user.click(screen.getByRole("button", { name: "Start using Yadi" }));
-      expect(onFinished).toHaveBeenCalled();
+      await waitFor(() => expect(onFinished).toHaveBeenCalled());
       // everything was recorded as done in the saved state
       const saved = (await api.getState()) as SetupState;
       expect(Object.values(saved.steps).every((s) => s === "done")).toBe(true);

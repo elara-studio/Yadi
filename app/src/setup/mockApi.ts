@@ -175,6 +175,8 @@ export function createMockSetupApi(options: MockOptions = {}): SetupApi {
     summonDescription: async () =>
       chord ? (os === "macos" ? "Cmd+Shift+Y" : "Ctrl+Shift+Y") : "Hold the Y key",
 
+    setAutostart: async () => {}, // simulated setup: the real login items are left alone
+
     appVersion: async () => "0.1.0-mock",
   };
 }
