@@ -116,16 +116,35 @@ pub fn init(app: &AppHandle, settings: &Settings) {
     app.manage(NoticeState::default());
     #[cfg(target_os = "macos")]
     watch_permissions(app);
-    if let Err(reason) = apply(app, settings, false) {
+    let applied = if settings.summon.mode == SummonMode::Chord {
+        retry_chord(|| apply(app, settings, false))
+    } else {
+        apply(app, settings, false)
+    };
+    if let Err(reason) = applied {
         log::warn!("long-press hook unavailable ({reason}); using the chord fallback");
         let mut fallback = settings.clone();
         fallback.summon.mode = SummonMode::Chord;
-        if let Err(e) = chord::apply(app, &fallback) {
+        if let Err(e) = retry_chord(|| chord::apply(app, &fallback)) {
             log::warn!("chord fallback could not be registered: {e}");
         }
         let notice = fallback_notice(&fallback.summon.chord, !permissions::status().all_granted());
         set_notice(app, Some(notice));
     }
+}
+
+/// Just after Yadi starts, the summon listener (`crate::listener`) may still hold the shortcut
+/// for a moment, and Windows refuses a shortcut that another program holds: retry briefly.
+fn retry_chord(mut register: impl FnMut() -> Result<(), String>) -> Result<(), String> {
+    let mut result = register();
+    for _ in 0..6 {
+        if result.is_ok() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        result = register();
+    }
+    result
 }
 
 /// The summon works as chosen: a stored "using the chord instead" notice no longer applies, so

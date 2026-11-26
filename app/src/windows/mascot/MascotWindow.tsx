@@ -34,6 +34,8 @@ export function MascotWindow() {
         const complete = isSetupComplete(loadSetupState(raw));
         controller.setSetupComplete(complete);
         if (!complete) controller.dispatch({ type: "SETUP_START" });
+        // Lets Hold-Y or the shortcut open Yadi after it was quit (see listener.rs).
+        else void invoke("summon_listener_ensure").catch(() => {});
       },
       () => {
         // Unreadable state: treat as unfinished rather than silently skipping setup.
@@ -58,6 +60,13 @@ export function MascotWindow() {
       listen("tray:about", () => controller.openAbout()),
       listen<boolean>(SETTINGS_OPEN_EVENT, (e) => setSettingsOpen(e.payload === true)),
     ];
+    // Opened by the summon listener while Yadi was closed: answer that summon now.
+    void Promise.all(pending)
+      .then(() => invoke<boolean>("take_launch_summon"))
+      .then((summoned) => {
+        if (summoned) controller.dispatch({ type: "SUMMON" });
+      })
+      .catch(() => {});
     return () => {
       unsubscribe();
       pending.forEach((p) => void p.then((unlisten) => unlisten()));

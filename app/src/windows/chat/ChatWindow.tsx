@@ -148,7 +148,11 @@ export function ChatWindow() {
             {setupApi ? (
               <SetupWizard
                 api={setupApi}
-                onFinished={() => sendToController({ type: "SETUP_DONE" })}
+                onFinished={() => {
+                  sendToController({ type: "SETUP_DONE" });
+                  // From now on Hold-Y or the shortcut can open Yadi after it was quit.
+                  void invoke("summon_listener_ensure").catch(() => {});
+                }}
                 onOpenAbout={() => setView("about")}
               />
             ) : (

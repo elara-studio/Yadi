@@ -68,7 +68,7 @@ impl Engine {
         self.detector = LongPressDetector::new(threshold_ms);
     }
 
-    #[cfg(test)]
+    /// True while a Y press is being held and watched.
     pub fn is_tracking(&self) -> bool {
         self.detector.is_tracking()
     }

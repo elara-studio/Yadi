@@ -162,6 +162,18 @@ pub fn load(app: &AppHandle) -> Settings {
         .normalized()
 }
 
+/// Reads `settings.json` straight from disk, for the summon listener (which runs without the
+/// store plugin). Missing or unreadable data yields defaults, as in `load`.
+pub fn read_file(path: &std::path::Path) -> Settings {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .and_then(|v| v.get(STORE_KEY).cloned())
+        .and_then(|v| serde_json::from_value::<Settings>(v).ok())
+        .unwrap_or_default()
+        .normalized()
+}
+
 fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     let value = serde_json::to_value(settings).map_err(|e| e.to_string())?;

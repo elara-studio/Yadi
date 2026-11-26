@@ -153,6 +153,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-store",
  "windows",
+ "windows-registry",
  "zip",
 ]
 

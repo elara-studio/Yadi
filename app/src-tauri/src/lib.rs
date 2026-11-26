@@ -3,6 +3,7 @@ mod audio;
 mod download;
 mod hardware;
 mod hotkey;
+mod listener;
 mod models;
 mod ollama;
 mod settings;
@@ -20,6 +21,13 @@ use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    // The same program, started at login, waits for the summon while Yadi is closed.
+    if listener::is_listener_process() {
+        listener::run::run(context);
+        return;
+    }
+    listener::note_launch_args();
     tauri::Builder::default()
         // Must be the first plugin. A second launch (double-click, login item plus manual start)
         // brings the first Yadi forward instead of starting another mascot.
@@ -106,9 +114,13 @@ pub fn run() {
             hotkey::summon_capture_end,
             hotkey::summon_set_paused,
             hotkey::open_permission_settings,
+            listener::take_launch_summon,
+            listener::summon_listener_ensure,
         ])
         .on_menu_event(|app, event| windows::menu::handle_menu_event(app, event.id().as_ref()))
         .setup(|app| {
+            // First, so the summon listener stops listening before Yadi registers its own summon.
+            listener::hold_main_lock(app.handle());
             // No Dock icon: Yadi lives in the tray and as the floating mascot.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -118,13 +130,15 @@ pub fn run() {
             windows::menu::setup_tray(app.handle())?;
             Ok(())
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
-            // Stop Ollama on quit, but only if Yadi was the one that started it.
+            // Stop Ollama on quit, but only if Yadi was the one that started it. Then hand the
+            // summon to the listener, so Hold-Y or the shortcut can open Yadi again.
             if let tauri::RunEvent::Exit = event {
                 use tauri::Manager;
                 app.state::<ollama::commands::OllamaState>().shutdown();
+                listener::on_main_exit(app);
             }
         });
 }
