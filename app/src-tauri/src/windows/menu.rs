@@ -2,6 +2,7 @@
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
+use tauri::image::Image;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use super::MASCOT_LABEL;
@@ -33,15 +34,27 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
     }
 }
 
+/// The orange Yadi hand, cropped to the drawing with no margin so it fills the bar.
+/// macOS keeps the aspect ratio (fixed height), so the tall crop is used as is;
+/// Windows squeezes tray icons into a square, so it gets the square, centred copy.
+fn tray_image() -> Image<'static> {
+    #[cfg(target_os = "windows")]
+    {
+        tauri::include_image!("icons/tray-square.png")
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        tauri::include_image!("icons/tray.png")
+    }
+}
+
 pub fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let menu = build_menu(app)?;
     let mut builder = TrayIconBuilder::with_id("yadi-tray")
         .tooltip("Yadi")
         .menu(&menu)
         .show_menu_on_left_click(true);
-    if let Some(icon) = app.default_window_icon() {
-        builder = builder.icon(icon.clone());
-    }
+    builder = builder.icon(tray_image()).icon_as_template(false);
     builder.build(app)?;
     Ok(())
 }
