@@ -22,7 +22,8 @@ pub const CHAT_LABEL: &str = "chat";
 
 // The plan says 96x96. The window is taller and wider so the status bubble can sit above
 // the 96 px mascot image (user request, Task 03).
-const MASCOT_SIZE: (f64, f64) = (128.0, 140.0);
+/// Room for the 96 px mascot, its hop, and a thought bubble of up to three short lines.
+const MASCOT_SIZE: (f64, f64) = (184.0, 184.0);
 const CHAT_SIZE: (f64, f64) = (420.0, 560.0);
 
 const STORE_FILE: &str = "window-state.json";
@@ -99,6 +100,10 @@ pub fn create_windows(app: &AppHandle) -> tauri::Result<()> {
         .skip_taskbar(true)
         .shadow(false)
         .visible(false)
+        // Yadi is a menu-bar app, so its windows count as "in the background" almost always;
+        // without this, WebKit suspends the page after a while (macOS 14+) and the mascot
+        // freezes mid-animation, along with the Controller's timers that live in this page.
+        .background_throttling(tauri::utils::config::BackgroundThrottlingPolicy::Disabled)
         .build()?;
 
     let monitors = monitor_rects(app);

@@ -147,6 +147,10 @@ const EVENT_TYPES: ReadonlySet<string> = new Set([
 /** Mascot animation for each app state. */
 export function mascotStateFor(model: Model): MascotState {
   switch (model.state) {
+    case "setup":
+      return "setup";
+    case "minimized":
+      return "asleep";
     case "recording":
       return "listening";
     case "processing":

@@ -142,8 +142,8 @@ describe("Controller", () => {
 
 describe("mascotStateFor", () => {
   it.each([
-    ["setup", "idle"],
-    ["minimized", "idle"],
+    ["setup", "setup"],
+    ["minimized", "asleep"],
     ["idle", "idle"],
     ["recording", "listening"],
     ["processing", "thinking"],

@@ -1,24 +1,31 @@
 import mascotUrl from "../assets/mascot/mascot.png";
 
-export type MascotState = "idle" | "listening" | "thinking" | "done";
+/**
+ * What the mascot is doing. `asleep` is the hidden-chat state (click to start); `setup` is the
+ * first-run wizard; the rest follow one prompt from "ready to record" to "copy it".
+ */
+export type MascotState = "asleep" | "setup" | "idle" | "listening" | "thinking" | "done";
 
 /**
- * Status text shown in the thought bubble. This is the stop-gap for animated mascots:
- * the artwork is the static app icon, and a bubble carries the status. To switch to
- * Lottie/GIF mascots later, replace the <img> below and drop the bubble; nothing else
- * depends on this file's internals.
+ * What the thought bubble says: the next thing to do, so nobody has to remember the keys.
+ * The artwork is the static app icon animated with CSS; to switch to Lottie/GIF mascots later,
+ * replace the <img> below. Nothing else depends on this file's internals.
  */
 export const MASCOT_STATUS: Record<MascotState, string> = {
-  idle: "Ready",
-  listening: "Listening…",
+  asleep: "Click me to start",
+  setup: "Let's get you set up",
+  idle: "Press Y when you're ready to record",
+  listening: "Press Y when you're done",
   thinking: "Thinking…",
-  done: "Done!",
+  done: "Press C to copy, or drag and drop the prompt",
 };
 
 export function Mascot({ state }: { state: MascotState }) {
   return (
     <div className={`mascot mascot--${state}`} data-state={state}>
-      <div className="bubble" role="status" aria-live="polite">
+      {/* Keyed by state so the bubble pops in again each time its message changes. */}
+      <div key={state} className="bubble" role="status" aria-live="polite">
+        {state === "listening" && <span className="bubble-rec" aria-hidden="true" />}
         {MASCOT_STATUS[state]}
       </div>
       <img className="mascot-img" src={mascotUrl} alt="Yadi" draggable={false} />
