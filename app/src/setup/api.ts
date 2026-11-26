@@ -43,6 +43,8 @@ export interface SetupApi {
   hotkeyRequest(): Promise<void>;
   /** Switches the summon method to the Cmd/Ctrl+Shift+Y chord. */
   useChordFallback(): Promise<void>;
+  /** Switches the summon method to Hold-Y and starts listening for it. */
+  useHoldY(): Promise<void>;
   /** Short text for the finished screen, e.g. "Hold the Y key" or "Cmd+Shift+Y". */
   summonDescription(): Promise<string>;
 
@@ -91,6 +93,12 @@ export function createTauriSetupApi(): SetupApi {
       const settings = await invoke<{ summon: Record<string, unknown> }>("get_settings");
       await invoke("set_settings", {
         settings: { ...settings, summon: { ...settings.summon, mode: "chord" } },
+      });
+    },
+    useHoldY: async () => {
+      const settings = await invoke<{ summon: Record<string, unknown> }>("get_settings");
+      await invoke("set_settings", {
+        settings: { ...settings, summon: { ...settings.summon, mode: "longpress-y" } },
       });
     },
     summonDescription: async () => {

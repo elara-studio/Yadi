@@ -193,23 +193,25 @@ export const microphoneStep: StepDef = {
 };
 
 export const SUMMON_NOT_GRANTED_MESSAGE =
-  "Yadi still needs keyboard permission to notice when you hold Y. Allow it in System Settings > Privacy & Security (Accessibility and Input Monitoring), then press Try again, or skip this and use Cmd+Shift+Y instead.";
+  "Yadi still needs Accessibility permission to notice when you hold Y. Turn Yadi on in System Settings > Privacy & Security > Accessibility, then press Try again, or skip this and use Cmd+Shift+Y instead.";
 
 export const summonStep: StepDef = {
   id: "summon",
   title: "Summon key",
   async detect(ctx) {
     if (!isMac(ctx)) return false; // Windows: show the explanation screen
-    const p = await ctx.api.hotkeyStatus();
-    return p.accessibility && p.input_monitoring;
+    return (await ctx.api.hotkeyStatus()).accessibility;
   },
   async run(ctx) {
     if (!isMac(ctx)) return; // nothing to grant on Windows
-    const before = await ctx.api.hotkeyStatus();
-    if (!(before.accessibility && before.input_monitoring)) await ctx.api.hotkeyRequest();
-    const after = await ctx.api.hotkeyStatus();
-    if (!(after.accessibility && after.input_monitoring))
-      throw new Error(SUMMON_NOT_GRANTED_MESSAGE);
+    // The only place Yadi asks: never at launch, and never when it is already allowed.
+    if (!(await ctx.api.hotkeyStatus()).accessibility) {
+      await ctx.api.hotkeyRequest();
+      if (!(await ctx.api.hotkeyStatus()).accessibility)
+        throw new Error(SUMMON_NOT_GRANTED_MESSAGE);
+    }
+    // Permission may have arrived after launch, when Hold-Y could not start: start it now.
+    await ctx.api.useHoldY();
   },
 };
 

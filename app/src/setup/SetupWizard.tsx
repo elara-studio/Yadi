@@ -441,8 +441,8 @@ export function SetupWizard({
         {mac ? (
           <p>
             Hold the <kbd>Y</kbd> key anywhere to summon Yadi. macOS needs your permission for this
-            (Accessibility and Input Monitoring). If you prefer, use <kbd>Cmd</kbd>+<kbd>Shift</kbd>
-            +<kbd>Y</kbd> instead.
+            (Accessibility). If you prefer, use <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd>{" "}
+            instead.
           </p>
         ) : (
           <p>

@@ -93,6 +93,7 @@ function fakeApi(
     hotkeyStatus: vi.fn(async () => ({ accessibility: false, input_monitoring: false })),
     hotkeyRequest: vi.fn(async () => {}),
     useChordFallback: vi.fn(async () => {}),
+    useHoldY: vi.fn(async () => {}),
     summonDescription: vi.fn(async () => "Hold the Y key"),
     appVersion: vi.fn(async () => "0.1.0"),
     ...over,
@@ -646,6 +647,23 @@ describe("SetupWizard", () => {
       await user.click(await screen.findByRole("button", { name: "Turn on hold-Y" }));
       expect(await screen.findByText("Yadi is ready")).toBeInTheDocument();
       expect(api.hotkeyRequest).toHaveBeenCalledTimes(1);
+      expect(api.useHoldY).toHaveBeenCalledTimes(1);
+    });
+
+    it("Accessibility alone is enough: no second request and no error", async () => {
+      const user = userEvent.setup();
+      let granted = false;
+      const api = fakeApi(
+        { hotkeyStatus: vi.fn(async () => ({ accessibility: granted, input_monitoring: false })) },
+        atSummon(),
+      );
+      renderWizard(api);
+      const button = await screen.findByRole("button", { name: "Turn on hold-Y" });
+      granted = true; // turned on in System Settings before pressing the button
+      await user.click(button);
+      expect(await screen.findByText("Yadi is ready")).toBeInTheDocument();
+      expect(api.hotkeyRequest).not.toHaveBeenCalled();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
     it("error: not granted yet explains what to do", async () => {

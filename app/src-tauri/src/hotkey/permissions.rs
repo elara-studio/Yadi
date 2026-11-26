@@ -3,32 +3,27 @@
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct PermissionStatus {
-    /// "Accessibility": needed to create an event tap that can swallow keys.
+    /// "Accessibility": needed to create an event tap that can swallow keys. A process with
+    /// Accessibility may also see key events, so this is the only one Hold-Y requires.
     pub accessibility: bool,
-    /// "Input Monitoring": needed to see key events at all.
+    /// "Input Monitoring": reported for diagnostics only. It is needed by listen-only taps of
+    /// apps *without* Accessibility, and its status can stay stale until the app restarts.
     pub input_monitoring: bool,
 }
 
 impl PermissionStatus {
+    /// Everything Hold-Y needs is granted.
     pub fn all_granted(&self) -> bool {
-        self.accessibility && self.input_monitoring
+        self.accessibility
     }
 }
 
 pub const ACCESSIBILITY_PANE: &str =
     "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
-pub const INPUT_MONITORING_PANE: &str =
-    "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent";
 
-/// The System Settings pane that fixes the first missing permission, if any.
+/// The System Settings pane that fixes the missing permission, if any.
 pub fn settings_url(status: PermissionStatus) -> Option<&'static str> {
-    if !status.accessibility {
-        Some(ACCESSIBILITY_PANE)
-    } else if !status.input_monitoring {
-        Some(INPUT_MONITORING_PANE)
-    } else {
-        None
-    }
+    (!status.all_granted()).then_some(ACCESSIBILITY_PANE)
 }
 
 #[cfg(target_os = "macos")]
@@ -48,7 +43,6 @@ mod mac {
     #[link(name = "CoreGraphics", kind = "framework")]
     unsafe extern "C" {
         fn CGPreflightListenEventAccess() -> bool;
-        fn CGRequestListenEventAccess() -> bool;
     }
 
     pub fn status() -> super::PermissionStatus {
@@ -61,7 +55,7 @@ mod mac {
         }
     }
 
-    /// Shows the system permission prompts (once per app; afterwards macOS only lists the
+    /// Shows the system Accessibility prompt (once per app; afterwards macOS only lists the
     /// app in System Settings).
     pub fn request() {
         // SAFETY: the dictionary lives for the duration of the call; the key is the system
@@ -73,7 +67,6 @@ mod mac {
                 CFBoolean::true_value().as_CFType(),
             )]);
             AXIsProcessTrustedWithOptions(options.as_concrete_TypeRef());
-            CGRequestListenEventAccess();
         }
     }
 }
@@ -139,14 +132,15 @@ mod tests {
     }
 
     #[test]
-    fn accessibility_pane_comes_first() {
+    fn accessibility_pane_when_accessibility_is_missing() {
         assert_eq!(settings_url(st(false, false)), Some(ACCESSIBILITY_PANE));
         assert_eq!(settings_url(st(false, true)), Some(ACCESSIBILITY_PANE));
+        assert!(!st(false, true).all_granted());
     }
 
     #[test]
-    fn input_monitoring_pane_when_only_that_is_missing() {
-        assert_eq!(settings_url(st(true, false)), Some(INPUT_MONITORING_PANE));
-        assert!(!st(true, false).all_granted());
+    fn accessibility_alone_is_enough() {
+        assert!(st(true, false).all_granted());
+        assert_eq!(settings_url(st(true, false)), None);
     }
 }

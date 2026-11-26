@@ -86,9 +86,9 @@ prompt-quality eval set. A model marked "untested" has not been scored yet.
 
 ## Troubleshooting
 
-- **Holding Y does nothing (macOS).** Yadi needs _Accessibility_ and _Input Monitoring_ permission
-  to see the held key. Open System Settings > Privacy & Security, switch Yadi on in both, then
-  restart Yadi. Until then it uses Cmd+Shift+Y.
+- **Holding Y does nothing (macOS).** Yadi needs _Accessibility_ permission to see the held key.
+  Open System Settings > Privacy & Security > Accessibility and switch Yadi on; Hold-Y starts
+  within a few seconds. Until then it uses Cmd+Shift+Y.
 - **No sound level / "microphone denied".** System Settings > Privacy & Security > Microphone:
   switch Yadi on. On Windows: Settings > Privacy > Microphone.
 - **Antivirus warns about Yadi (Windows).** The Hold-Y feature uses a keyboard hook, which some

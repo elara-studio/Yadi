@@ -183,7 +183,7 @@ pub fn set_settings(
     let settings = settings.normalized();
     settings.validate()?;
     // Apply first: if the chord cannot be registered (taken by another app) nothing changes.
-    hotkey::apply(&app, &settings)?;
+    hotkey::apply(&app, &settings, true)?;
     save(&app, &settings)?;
     *state.0.lock().expect("settings lock") = settings.clone();
     announce(&app, &settings);
@@ -195,7 +195,7 @@ pub fn set_settings(
 #[tauri::command]
 pub fn reset_everything(app: AppHandle, state: State<SettingsState>) -> Result<Settings, String> {
     let settings = Settings::default();
-    hotkey::apply(&app, &settings)?;
+    hotkey::apply(&app, &settings, true)?;
     save(&app, &settings)?;
     *state.0.lock().expect("settings lock") = settings.clone();
     announce(&app, &settings);

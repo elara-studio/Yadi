@@ -1,6 +1,6 @@
 //! macOS keyboard hook: a CGEventTap on the session event stream (key down / key up only).
 //!
-//! Needs Accessibility (and Input Monitoring) permission; without it `CGEventTapCreate`
+//! Needs Accessibility permission; without it `CGEventTapCreate`
 //! returns NULL and `start` reports `PermissionDenied` so the caller can fall back to the chord.
 
 use std::ffi::c_void;
@@ -78,8 +78,7 @@ fn run_tap(shared: Arc<Shared>, on_summon: SummonFn, tx: mpsc::SyncSender<Result
         Ok(t) => t,
         Err(()) => {
             let _ = tx.send(Err(HookError::PermissionDenied(
-                "macOS refused the keyboard hook; Accessibility / Input Monitoring is probably not granted"
-                    .into(),
+                "macOS refused the keyboard hook; Accessibility is probably not granted".into(),
             )));
             return;
         }

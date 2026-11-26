@@ -19,7 +19,7 @@ pub type SummonFn = Arc<dyn Fn() + Send + Sync + 'static>;
 
 #[derive(Debug)]
 pub enum HookError {
-    /// The OS refused to install the hook (macOS: Accessibility / Input Monitoring missing).
+    /// The OS refused to install the hook (macOS: Accessibility missing).
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     PermissionDenied(String),
     Failed(String),

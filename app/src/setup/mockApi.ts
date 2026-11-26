@@ -171,6 +171,7 @@ export function createMockSetupApi(options: MockOptions = {}): SetupApi {
       hotkey = { accessibility: true, input_monitoring: true };
     },
     useChordFallback: async () => void (chord = true),
+    useHoldY: async () => void (chord = false),
     summonDescription: async () =>
       chord ? (os === "macos" ? "Cmd+Shift+Y" : "Ctrl+Shift+Y") : "Hold the Y key",
 

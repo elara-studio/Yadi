@@ -53,7 +53,11 @@ pub fn apply_threshold(shared: &hook::Shared, settings: &Settings) {
 /// Makes the OS-level summon match `settings`. Never panics. In long-press mode it installs
 /// the keyboard hook (needs macOS permissions) and drops the chord; in chord mode it switches
 /// the hook off and registers the chord. On error nothing was changed for the failing side.
-pub fn apply(app: &AppHandle, settings: &Settings) -> Result<(), String> {
+///
+/// `ask`: whether a missing permission may be asked for now. At launch it is `false`, so the
+/// system prompt only appears when the person chooses Hold-Y (in setup or in Settings); without
+/// permission the hook is then not even tried, because trying can make macOS ask as well.
+pub fn apply(app: &AppHandle, settings: &Settings, ask: bool) -> Result<(), String> {
     let state = app.state::<HookState>();
     match settings.summon.mode {
         SummonMode::Chord => {
@@ -69,6 +73,9 @@ pub fn apply(app: &AppHandle, settings: &Settings) -> Result<(), String> {
                 perms.input_monitoring
             );
             if !perms.all_granted() {
+                if !ask {
+                    return Err("Hold-Y needs Accessibility permission".into());
+                }
                 permissions::request();
             }
             state
@@ -100,15 +107,14 @@ pub fn fallback_notice(chord: &str, permission_missing: bool) -> Notice {
 }
 
 /// Startup: apply the saved settings; if the long-press hook cannot run, fall back to the
-/// chord and leave a notice with a "Fix" action.
+/// chord and leave a notice with a "Fix" action. No permission prompt is shown here: the setup
+/// wizard (or choosing Hold-Y in Settings) is where Yadi asks.
 pub fn init(app: &AppHandle, settings: &Settings) {
     app.manage(HookState::new());
     app.manage(NoticeState::default());
     #[cfg(target_os = "macos")]
-    if settings.summon.mode == SummonMode::LongpressY {
-        watch_permissions(app, settings);
-    }
-    if let Err(reason) = apply(app, settings) {
+    watch_permissions(app);
+    if let Err(reason) = apply(app, settings, false) {
         log::warn!("long-press hook unavailable ({reason}); using the chord fallback");
         let mut fallback = settings.clone();
         fallback.summon.mode = SummonMode::Chord;
@@ -116,11 +122,15 @@ pub fn init(app: &AppHandle, settings: &Settings) {
             log::warn!("chord fallback could not be registered: {e}");
         }
         let notice = fallback_notice(&fallback.summon.chord, !permissions::status().all_granted());
-        *app.state::<NoticeState>()
-            .0
-            .lock()
-            .unwrap_or_else(|e| e.into_inner()) = Some(notice);
+        set_notice(app, Some(notice));
     }
+}
+
+fn set_notice(app: &AppHandle, notice: Option<Notice>) {
+    *app.state::<NoticeState>()
+        .0
+        .lock()
+        .unwrap_or_else(|e| e.into_inner()) = notice;
 }
 
 /// True when a permission that was granted a moment ago is gone now.
@@ -129,37 +139,54 @@ pub fn permission_lost(was_granted: bool, is_granted: bool) -> bool {
     was_granted && !is_granted
 }
 
-/// macOS lets the user switch Accessibility / Input Monitoring off while Yadi runs; the keyboard
-/// hook then silently stops seeing keys. Watch for that and switch to the chord with a notice
-/// (the saved setting is not changed, so Hold-Y returns after the permission is back and Yadi is
-/// restarted). Nothing to watch on other systems.
+/// True when a permission that was missing a moment ago is there now.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn permission_gained(was_granted: bool, is_granted: bool) -> bool {
+    !was_granted && is_granted
+}
+
+/// macOS permission changes while Yadi runs, when Hold-Y is the chosen summon:
+/// - switched off: the keyboard hook silently stops seeing keys, so switch to the chord with a
+///   notice (the saved setting is not changed);
+/// - switched on (for example during setup): start Hold-Y right away, no restart needed.
+///
+/// Nothing to watch on other systems.
 #[cfg(target_os = "macos")]
-fn watch_permissions(app: &AppHandle, settings: &Settings) {
+fn watch_permissions(app: &AppHandle) {
     let app = app.clone();
-    let chord_settings = {
-        let mut s = settings.clone();
-        s.summon.mode = SummonMode::Chord;
-        s
-    };
     std::thread::Builder::new()
         .name("yadi-permission-watch".into())
         .spawn(move || {
             let mut was_granted = permissions::status().all_granted();
             loop {
-                std::thread::sleep(std::time::Duration::from_secs(3));
+                std::thread::sleep(std::time::Duration::from_secs(2));
                 let granted = permissions::status().all_granted();
-                if permission_lost(was_granted, granted) {
+                let current = app
+                    .state::<crate::settings::SettingsState>()
+                    .0
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone();
+                let hold_y = current.summon.mode == SummonMode::LongpressY;
+                if hold_y && permission_lost(was_granted, granted) {
                     log::warn!("keyboard permission was switched off; using the chord instead");
                     app.state::<HookState>().shared.set_enabled(false);
+                    let mut chord_settings = current.clone();
+                    chord_settings.summon.mode = SummonMode::Chord;
                     if let Err(e) = chord::apply(&app, &chord_settings) {
                         log::warn!("chord fallback could not be registered: {e}");
                     }
                     let notice = fallback_notice(&chord_settings.summon.chord, true);
-                    *app.state::<NoticeState>()
-                        .0
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner()) = Some(notice.clone());
+                    set_notice(&app, Some(notice.clone()));
                     let _ = app.emit_to(crate::windows::CHAT_LABEL, "app:notice", notice);
+                } else if hold_y && permission_gained(was_granted, granted) {
+                    match apply(&app, &current, false) {
+                        Ok(()) => {
+                            log::info!("keyboard permission granted; Hold-Y is on");
+                            set_notice(&app, None);
+                        }
+                        Err(e) => log::warn!("keyboard permission granted but Hold-Y failed: {e}"),
+                    }
                 }
                 was_granted = granted;
             }
@@ -214,5 +241,13 @@ mod tests {
         assert!(!permission_lost(true, true));
         assert!(!permission_lost(false, false)); // never had it: the startup fallback handled that
         assert!(!permission_lost(false, true)); // just granted
+    }
+
+    #[test]
+    fn only_a_missing_permission_that_appears_counts_as_gained() {
+        assert!(permission_gained(false, true));
+        assert!(!permission_gained(true, true));
+        assert!(!permission_gained(false, false));
+        assert!(!permission_gained(true, false));
     }
 }

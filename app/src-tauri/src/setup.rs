@@ -121,7 +121,7 @@ pub fn hotkey_permission_status() -> PermissionStatus {
     permissions::status()
 }
 
-/// Shows the macOS Accessibility / Input Monitoring prompts (a no-op elsewhere).
+/// Shows the macOS Accessibility prompt (a no-op elsewhere).
 #[tauri::command]
 pub fn hotkey_request_permission() {
     permissions::request();
