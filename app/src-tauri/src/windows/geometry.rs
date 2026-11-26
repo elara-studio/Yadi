@@ -95,6 +95,28 @@ pub fn chat_position(mascot: Rect, chat_size: (i32, i32), monitor: Rect, gap: i3
     )
 }
 
+/// Where the chat goes when the mascot is at `mascot` and the chat sits `offset` away from it
+/// (the offset the chat had when it was placed or last dragged). Kept on a visible monitor.
+pub fn follow_position(
+    mascot: (i32, i32),
+    offset: (i32, i32),
+    chat_size: (i32, i32),
+    monitors: &[Rect],
+    primary: Rect,
+) -> (i32, i32) {
+    clamp_to_monitors(
+        (mascot.0 + offset.0, mascot.1 + offset.1),
+        chat_size,
+        monitors,
+        primary,
+    )
+}
+
+/// The offset of the chat from the mascot (what `follow_position` adds back).
+pub fn offset_between(chat: (i32, i32), mascot: (i32, i32)) -> (i32, i32) {
+    (chat.0 - mascot.0, chat.1 - mascot.1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -219,5 +241,42 @@ mod tests {
         let mascot = Rect::new(20, 1000, 128, 140);
         let (_, y) = chat_position(mascot, (420, 560), PRIMARY, CHAT_GAP);
         assert!(y >= 0 && y + 560 <= 1080);
+    }
+
+    #[test]
+    fn chat_keeps_its_distance_from_the_mascot_while_it_moves() {
+        let offset = offset_between((1340, 496), (1768, 916));
+        assert_eq!(offset, (-428, -420));
+        // The mascot is dragged to the middle of the screen: the chat comes along.
+        assert_eq!(
+            follow_position((900, 500), offset, (420, 560), &[PRIMARY], PRIMARY),
+            (472, 80)
+        );
+    }
+
+    #[test]
+    fn a_chat_dragged_to_the_other_side_stays_there_when_the_mascot_moves() {
+        // The user pulled the chat to the right of the mascot.
+        let offset = offset_between((900, 300), (700, 400));
+        assert_eq!(offset, (200, -100));
+        assert_eq!(
+            follow_position((100, 400), offset, (420, 560), &[PRIMARY], PRIMARY),
+            (300, 300)
+        );
+    }
+
+    #[test]
+    fn a_following_chat_is_pulled_back_when_the_mascot_nears_an_edge() {
+        let offset = (-428, -420);
+        // Mascot at the very left edge: the chat would be off screen, so it is held on screen.
+        let (x, y) = follow_position((0, 600), offset, (420, 560), &[PRIMARY], PRIMARY);
+        assert_eq!((x, y), (0, 180));
+    }
+
+    #[test]
+    fn a_following_chat_can_cross_to_the_second_monitor() {
+        let offset = (128 + 8, 0);
+        let (x, _) = follow_position((2000, 20), offset, (420, 560), &[PRIMARY, SECOND], PRIMARY);
+        assert_eq!(x, 2136);
     }
 }

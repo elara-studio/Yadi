@@ -46,6 +46,19 @@ describe("ChatWindow", () => {
     expect(KEY_HINT).toBe("Y = next step · Esc = stop / hide");
   });
 
+  it("can be dragged by its grip and its title bar, on every screen", async () => {
+    render(<ChatWindow />);
+    await act(async () => {});
+    expect(screen.getByTestId("chat-grip")).toHaveAttribute("data-tauri-drag-region");
+    expect(screen.getByTestId("chat-state").parentElement).toHaveAttribute(
+      "data-tauri-drag-region",
+    );
+    // The buttons in the title bar stay clickable: only the bar itself drags.
+    expect(screen.getByLabelText("Settings")).not.toHaveAttribute("data-tauri-drag-region");
+    act(() => handlers.get("app:view")?.({ payload: { view: "settings" } }));
+    expect(screen.getByTestId("chat-grip")).toBeInTheDocument();
+  });
+
   it("asks the Controller for the current state on load", async () => {
     render(<ChatWindow />);
     await act(async () => {});

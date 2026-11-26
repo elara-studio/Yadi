@@ -100,6 +100,15 @@ export function ChatWindow() {
   return (
     <div className="chat-root">
       <div className="chat-card">
+        {/* Grab here (or on the title bar) to drag the chat; it keeps its place beside Yadi. */}
+        <div
+          className="chat-grip"
+          data-tauri-drag-region
+          data-testid="chat-grip"
+          aria-hidden="true"
+        >
+          <span className="chat-grip-pill" />
+        </div>
         {view === "about" ? (
           <div className="chat-body">
             <AboutView onBack={() => setView("chat")} />
@@ -126,9 +135,11 @@ export function ChatWindow() {
           </div>
         ) : (
           <>
-            <div className="chat-header">
-              <span className="chat-title">Yadi</span>
-              <span className="chat-state" data-testid="chat-state">
+            <div className="chat-header" data-tauri-drag-region>
+              <span className="chat-title" data-tauri-drag-region>
+                Yadi
+              </span>
+              <span className="chat-state" data-testid="chat-state" data-tauri-drag-region>
                 {app.state}
               </span>
               <button
