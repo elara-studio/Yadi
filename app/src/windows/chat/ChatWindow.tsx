@@ -133,6 +133,20 @@ export function ChatWindow() {
         >
           <span className="chat-grip-pill" />
         </div>
+        {app.state === "setup" && (
+          // Kept mounted under About/Settings so the wizard keeps its place (and ticked boxes).
+          <div className="chat-body" hidden={view !== "chat"} data-testid="setup-body">
+            {setupApi ? (
+              <SetupWizard
+                api={setupApi}
+                onFinished={() => sendToController({ type: "SETUP_DONE" })}
+                onOpenAbout={() => setView("about")}
+              />
+            ) : (
+              <p>Loading…</p>
+            )}
+          </div>
+        )}
         {view === "about" ? (
           <div className="chat-body">
             <AboutView onBack={() => setView("chat")} />
@@ -145,19 +159,7 @@ export function ChatWindow() {
               onOpenAbout={() => setView("about")}
             />
           </div>
-        ) : app.state === "setup" ? (
-          <div className="chat-body">
-            {setupApi ? (
-              <SetupWizard
-                api={setupApi}
-                onFinished={() => sendToController({ type: "SETUP_DONE" })}
-                onOpenAbout={() => setView("about")}
-              />
-            ) : (
-              <p>Loading…</p>
-            )}
-          </div>
-        ) : (
+        ) : app.state === "setup" ? null : (
           <>
             <div className="chat-header" data-tauri-drag-region>
               <span className="chat-title" data-tauri-drag-region>

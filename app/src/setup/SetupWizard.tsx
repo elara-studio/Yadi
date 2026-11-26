@@ -310,6 +310,16 @@ export function SetupWizard({
           <strong>The internet is needed only for this setup.</strong> Afterwards Yadi works
           offline.
         </p>
+        {onOpenAbout && (
+          <div className="setup-licences">
+            <span>
+              Yadi, the language engine and the models it downloads each come with a licence.
+            </span>
+            <button type="button" onClick={onOpenAbout}>
+              View all licences
+            </button>
+          </div>
+        )}
         <h3>Your computer</h3>
         <ul className="setup-facts" data-testid="hardware-summary">
           <li>{Math.round(hw.ram_bytes / 1024 ** 3)} GB memory</li>

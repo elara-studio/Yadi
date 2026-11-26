@@ -845,3 +845,33 @@ body,
 .result-card[draggable="true"]:active {
   cursor: grabbing;
 }
+
+.chat-body[hidden] {
+  display: none;
+}
+
+/* Welcome screen: the licences are one click away before anything is downloaded. */
+.setup-licences {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff1e8;
+  font-size: 12px;
+}
+.setup-licences span {
+  flex: 1;
+}
+.setup-licences button {
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid var(--yadi-orange);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yadi-orange);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

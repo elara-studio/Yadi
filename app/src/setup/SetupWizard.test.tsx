@@ -145,6 +145,15 @@ const stepCount = () => screen.getByText(/^Step \d of 6$/).textContent;
 
 describe("SetupWizard", () => {
   describe("welcome", () => {
+    it("offers all the licences right away, before agreeing to anything", async () => {
+      const user = userEvent.setup();
+      const onOpenAbout = vi.fn();
+      renderWizard(fakeApi(), { onOpenAbout });
+      expect(await screen.findByText("Welcome to Yadi")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "View all licences" }));
+      expect(onOpenAbout).toHaveBeenCalled();
+    });
+
     it("shows the hardware, what will be installed, sizes and the offline promise", async () => {
       renderWizard(fakeApi());
       expect(await screen.findByText("Welcome to Yadi")).toBeInTheDocument();

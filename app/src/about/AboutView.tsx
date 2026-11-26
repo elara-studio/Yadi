@@ -33,9 +33,16 @@ export function AboutView({ onBack }: { onBack: () => void }) {
 
   if (missing) {
     return (
-      <p>
-        Licence data was not generated. Run <code>node scripts/gen-licenses.mjs</code>.
-      </p>
+      <div className="about">
+        <div className="about-header">
+          <button type="button" className="about-back" onClick={onBack} aria-label="Back to chat">
+            ←
+          </button>
+        </div>
+        <p>
+          Licence data was not generated. Run <code>node scripts/gen-licenses.mjs</code>.
+        </p>
+      </div>
     );
   }
   if (!data) return <p>Loading…</p>;

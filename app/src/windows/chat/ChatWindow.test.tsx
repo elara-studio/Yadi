@@ -325,7 +325,11 @@ describe("ChatWindow", () => {
           screen.queryByText(/Licence data was not generated/),
       ).toBeInTheDocument(),
     );
-    expect(screen.queryByTestId("wizard-stub")).not.toBeInTheDocument();
+    // The wizard stays mounted underneath (hidden) so it keeps its place.
+    expect(screen.getByTestId("setup-body")).not.toBeVisible();
+    fireEvent.click(await screen.findByRole("button", { name: "Back to chat" }));
+    expect(screen.getByTestId("setup-body")).toBeVisible();
+    expect(screen.getByTestId("wizard-stub")).toBeInTheDocument();
   });
 
   it("Settings -> Re-run setup saves a fresh progress file and asks for SETUP_START", async () => {
