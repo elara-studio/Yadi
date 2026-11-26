@@ -1,8 +1,8 @@
 //! Tray icon and the mascot right-click menu. Both share one menu layout.
 
+use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::image::Image;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use super::MASCOT_LABEL;
