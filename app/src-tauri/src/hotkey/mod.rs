@@ -63,6 +63,7 @@ pub fn apply(app: &AppHandle, settings: &Settings, ask: bool) -> Result<(), Stri
         SummonMode::Chord => {
             chord::apply(app, settings)?;
             state.shared.set_enabled(false);
+            clear_notice(app);
             Ok(())
         }
         SummonMode::LongpressY => {
@@ -84,6 +85,7 @@ pub fn apply(app: &AppHandle, settings: &Settings, ask: bool) -> Result<(), Stri
             apply_threshold(&state.shared, settings);
             chord::apply(app, settings)?; // unregisters any chord
             state.shared.set_enabled(true);
+            clear_notice(app);
             Ok(())
         }
     }
@@ -123,6 +125,18 @@ pub fn init(app: &AppHandle, settings: &Settings) {
         }
         let notice = fallback_notice(&fallback.summon.chord, !permissions::status().all_granted());
         set_notice(app, Some(notice));
+    }
+}
+
+/// The summon works as chosen: a stored "using the chord instead" notice no longer applies, so
+/// drop it and tell the chat window (which may already be showing it) to hide it.
+fn clear_notice(app: &AppHandle) {
+    let Some(state) = app.try_state::<NoticeState>() else {
+        return;
+    };
+    let had = state.0.lock().unwrap_or_else(|e| e.into_inner()).take();
+    if had.is_some() {
+        let _ = app.emit_to(crate::windows::CHAT_LABEL, "app:notice", None::<Notice>);
     }
 }
 
@@ -181,10 +195,7 @@ fn watch_permissions(app: &AppHandle) {
                     let _ = app.emit_to(crate::windows::CHAT_LABEL, "app:notice", notice);
                 } else if hold_y && permission_gained(was_granted, granted) {
                     match apply(&app, &current, false) {
-                        Ok(()) => {
-                            log::info!("keyboard permission granted; Hold-Y is on");
-                            set_notice(&app, None);
-                        }
+                        Ok(()) => log::info!("keyboard permission granted; Hold-Y is on"),
                         Err(e) => log::warn!("keyboard permission granted but Hold-Y failed: {e}"),
                     }
                 }

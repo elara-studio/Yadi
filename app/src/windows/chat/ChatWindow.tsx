@@ -111,7 +111,8 @@ export function ChatWindow() {
       listen<AppStatePayload>("app:state", (e) => setApp(e.payload)),
       listen<{ view: ChatView }>("app:view", (e) => setView(e.payload.view)),
       listen<TranscriptSnapshot>("app:transcript", (e) => setTranscript(e.payload)),
-      listen<Notice>("app:notice", (e) => setNotice(e.payload)),
+      // `null`: the notice was resolved (e.g. Hold-Y started once permission was granted).
+      listen<Notice | null>("app:notice", (e) => setNotice(e.payload)),
       listen<ProgressPayload | null>("app:progress", (e) => setProgress(e.payload)),
       listen<ResultPayload | null>("app:result", (e) => setResult(e.payload)),
       listen<ProcessErrorPayload | null>("app:error", (e) => setProcessError(e.payload)),
