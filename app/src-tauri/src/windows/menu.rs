@@ -34,7 +34,7 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
     }
 }
 
-/// The orange Yadi hand, cropped to the drawing with no margin so it fills the bar.
+/// The orange Yadi hand filled with white (the OK ring stays see-through), cropped to the drawing with no margin so it fills the bar.
 /// macOS keeps the aspect ratio (fixed height), so the tall crop is used as is;
 /// Windows squeezes tray icons into a square, so it gets the square, centred copy.
 fn tray_image() -> Image<'static> {
