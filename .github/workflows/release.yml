@@ -67,8 +67,5 @@ jobs:
             - Windows (x64): `Yadi_*_x64-setup.exe`
 
             **These builds are not signed yet**, so your computer will warn you the first time:
-            - **macOS:** open the DMG and drag Yadi to Applications. Open Yadi; when macOS says it
-              can't be opened, go to System Settings → Privacy & Security, scroll down and click
-              **Open Anyway**.
-            - **Windows:** if SmartScreen says "Windows protected your PC", click **More info →
-              Run anyway**.
+            - **macOS:** open the DMG and drag Yadi to Applications. Open Yadi; when macOS says it can't be opened, go to System Settings → Privacy & Security, scroll down and click **Open Anyway**.
+            - **Windows:** if SmartScreen says "Windows protected your PC", click **More info → Run anyway**.

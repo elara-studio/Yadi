@@ -47,6 +47,9 @@ function sh(cmd, args, opts = {}) {
     cwd: ROOT,
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
+    // On Windows pnpm is a `pnpm.cmd` script, which Node can only start through a shell.
+    // The arguments are fixed strings in this file, so the shell sees nothing untrusted.
+    shell: process.platform === "win32" && cmd === "pnpm",
     ...opts,
   });
 }
