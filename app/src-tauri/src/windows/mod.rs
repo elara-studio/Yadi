@@ -61,10 +61,16 @@ impl ChatFollow {
     }
 }
 
+/// The usable part of a monitor: the screen minus the Dock and menu bar (taskbar on Windows),
+/// so the mascot and the chat are never placed behind them.
 fn monitor_rect(m: &Monitor) -> Rect {
-    let p = m.position();
-    let s = m.size();
-    Rect::new(p.x, p.y, s.width as i32, s.height as i32)
+    let a = m.work_area();
+    Rect::new(
+        a.position.x,
+        a.position.y,
+        a.size.width as i32,
+        a.size.height as i32,
+    )
 }
 
 fn primary_rect(app: &AppHandle, monitors: &[Rect]) -> Rect {
