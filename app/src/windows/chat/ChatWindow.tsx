@@ -39,6 +39,8 @@ interface Notice {
 }
 
 export const KEY_HINT = "Y = next step · Esc = stop / hide";
+/** While the prompt is shown, C copies it. */
+export const RESULT_KEY_HINT = `C = copy · ${KEY_HINT}`;
 
 /** An upright gear drawn as SVG, so it fills its circle and never inherits a text style. */
 function GearIcon() {
@@ -222,7 +224,9 @@ export function ChatWindow() {
               />
             </div>
             <AttachmentBar {...attachments} />
-            <div className="chat-hint">{KEY_HINT}</div>
+            <div className="chat-hint">
+              {app.state === "result" && result ? RESULT_KEY_HINT : KEY_HINT}
+            </div>
           </>
         )}
       </div>

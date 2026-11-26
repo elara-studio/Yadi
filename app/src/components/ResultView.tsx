@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResultPayload } from "../windows/mascot/controller";
+import { isEditorTarget } from "../windows/chat/keyboard";
 
 interface Props {
   result: ResultPayload;
@@ -24,23 +25,51 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/** A button that copies `text` and says "Copied" for 1.5 seconds. */
-function CopyButton({ text, label, primary }: { text: string; label: string; primary?: boolean }) {
-  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+type CopyState = "idle" | "copied" | "failed";
+
+/** Copies text and remembers the outcome for 1.5 seconds, for the button to show. */
+function useCopy(): [CopyState, (text: string) => Promise<void>] {
+  const [state, setState] = useState<CopyState>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
 
-  const click = async () => {
+  const copy = useCallback(async (text: string) => {
     const ok = await copyText(text);
     setState(ok ? "copied" : "failed");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setState("idle"), COPIED_MS);
-  };
+  }, []);
+  return [state, copy];
+}
 
+function CopyLabel({ state, label }: { state: CopyState; label: string }) {
+  return <>{state === "copied" ? "Copied" : state === "failed" ? "Could not copy" : label}</>;
+}
+
+/** A button that copies `text` and says "Copied" for 1.5 seconds. */
+function CopyButton({ text, label, primary }: { text: string; label: string; primary?: boolean }) {
+  const [state, copy] = useCopy();
   return (
-    <button type="button" className={primary ? "copy-primary" : "copy-secondary"} onClick={click}>
-      {state === "copied" ? "Copied" : state === "failed" ? "Could not copy" : label}
+    <button
+      type="button"
+      className={primary ? "copy-primary" : "copy-secondary"}
+      onClick={() => void copy(text)}
+    >
+      <CopyLabel state={state} label={label} />
     </button>
+  );
+}
+
+/** A plain C press, not while typing somewhere and not as part of a shortcut such as Cmd+C. */
+export function isCopyKey(e: KeyboardEvent): boolean {
+  return (
+    !e.repeat &&
+    e.key.toLowerCase() === "c" &&
+    !e.ctrlKey &&
+    !e.altKey &&
+    !e.metaKey &&
+    !e.shiftKey &&
+    !isEditorTarget(e.target)
   );
 }
 
@@ -71,6 +100,18 @@ function useReveal(text: string, ms: number): string {
 export function ResultView({ result, revealMs = 450, attachmentText, onRegenerate }: Props) {
   const visible = useReveal(result.prompt, revealMs);
   const older = result.recent.slice(1);
+  const [copyState, copy] = useCopy();
+
+  // C copies the prompt, like the Copy button (the window only gets keys while it is active).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isCopyKey(e)) return;
+      e.preventDefault();
+      void copy(result.prompt);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [copy, result.prompt]);
 
   return (
     <div className="result">
@@ -95,7 +136,14 @@ export function ResultView({ result, revealMs = 450, attachmentText, onRegenerat
         {visible}
       </pre>
       <div className="result-actions">
-        <CopyButton text={result.prompt} label="Copy" primary />
+        <button
+          type="button"
+          className="copy-primary"
+          title="Copy (C)"
+          onClick={() => void copy(result.prompt)}
+        >
+          <CopyLabel state={copyState} label="Copy" />
+        </button>
         {attachmentText ? (
           <CopyButton
             text={`${result.prompt}\n\n${attachmentText}`}

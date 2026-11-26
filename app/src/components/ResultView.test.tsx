@@ -62,6 +62,33 @@ describe("ResultView", () => {
     expect(dataTransfer.effectAllowed).toBe("copy");
   });
 
+  it("pressing C copies the whole prompt and the Copy button says Copied", async () => {
+    render(<ResultView result={result()} revealMs={600} />);
+    const event = new KeyboardEvent("keydown", { key: "c", bubbles: true, cancelable: true });
+    await act(async () => void document.body.dispatchEvent(event));
+    expect(writeText).toHaveBeenCalledWith(PROMPT);
+    expect(event.defaultPrevented).toBe(true);
+    expect(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+  });
+
+  it("C does nothing while typing, with a modifier, or when held down", async () => {
+    render(
+      <>
+        <input aria-label="field" />
+        <ResultView result={result()} revealMs={0} />
+      </>,
+    );
+    const field = screen.getByLabelText("field");
+    await act(async () => {
+      fireEvent.keyDown(field, { key: "c" });
+      fireEvent.keyDown(document.body, { key: "c", metaKey: true });
+      fireEvent.keyDown(document.body, { key: "c", ctrlKey: true });
+      fireEvent.keyDown(document.body, { key: "C", shiftKey: true });
+      fireEvent.keyDown(document.body, { key: "c", repeat: true });
+    });
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
   it("reveals the whole prompt within 600 ms", () => {
     vi.useFakeTimers();
     render(<ResultView result={result()} revealMs={900} />);

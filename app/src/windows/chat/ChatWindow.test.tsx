@@ -31,7 +31,7 @@ vi.mock("../../setup/SetupWizard", () => ({
   ),
 }));
 
-const { ChatWindow, KEY_HINT } = await import("./ChatWindow");
+const { ChatWindow, KEY_HINT, RESULT_KEY_HINT } = await import("./ChatWindow");
 
 describe("ChatWindow", () => {
   beforeEach(() => {
@@ -176,6 +176,8 @@ describe("ChatWindow", () => {
       await waitFor(() =>
         expect(screen.getByTestId("prompt-text")).toHaveTextContent("Task: Fix the sink."),
       );
+      expect(screen.getByText(RESULT_KEY_HINT)).toBeInTheDocument();
+      expect(RESULT_KEY_HINT).toBe("C = copy · Y = next step · Esc = stop / hide");
     });
 
     it("'Copy with attachment text' appears once something is attached, and copies the blocks", async () => {
