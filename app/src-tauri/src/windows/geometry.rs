@@ -62,11 +62,12 @@ pub fn clamp_to_monitors(
     )
 }
 
-/// First-launch position: bottom-right corner of the primary monitor.
+/// First-launch position: right edge of the primary monitor, vertically centred, so the
+/// mascot and the chat beside it sit at eye level instead of low in the corner.
 pub fn default_mascot_position(primary: Rect, size: (i32, i32)) -> (i32, i32) {
     (
         primary.right() - size.0 - DEFAULT_MARGIN,
-        primary.bottom() - size.1 - DEFAULT_MARGIN,
+        primary.y + (primary.h - size.1) / 2,
     )
 }
 
@@ -82,11 +83,15 @@ pub fn chat_position(mascot: Rect, chat_size: (i32, i32), monitor: Rect, gap: i3
         mascot.right() + gap
     };
 
-    // Align bottoms when the mascot is in the lower half, tops otherwise.
-    let y = if cy > mon_cy {
+    // Centre the chat on the mascot when the mascot is in the middle third of the screen;
+    // otherwise align bottoms (lower third) or tops (upper third).
+    let band = monitor.h / 6;
+    let y = if cy > mon_cy + band {
         mascot.bottom() - chat_size.1
-    } else {
+    } else if cy < mon_cy - band {
         mascot.y
+    } else {
+        cy - chat_size.1 / 2
     };
 
     (
@@ -199,8 +204,26 @@ mod tests {
     }
 
     #[test]
-    fn default_position_is_bottom_right() {
-        assert_eq!(default_mascot_position(PRIMARY, SIZE), (1768, 916));
+    fn default_position_is_right_edge_vertically_centred() {
+        assert_eq!(default_mascot_position(PRIMARY, SIZE), (1768, 470));
+    }
+
+    #[test]
+    fn default_position_respects_the_work_area_offset() {
+        // Menu bar takes the top 25 px: centre within what is left.
+        let work = Rect::new(0, 25, 1920, 1055);
+        assert_eq!(
+            default_mascot_position(work, SIZE),
+            (1768, 25 + (1055 - 140) / 2)
+        );
+    }
+
+    #[test]
+    fn chat_is_centred_on_a_mascot_in_the_middle_of_the_screen() {
+        let mascot = Rect::new(1768, 470, 128, 140);
+        let (x, y) = chat_position(mascot, (420, 560), PRIMARY, CHAT_GAP);
+        assert_eq!(x, 1768 - 8 - 420);
+        assert_eq!(y, 540 - 280);
     }
 
     #[test]
