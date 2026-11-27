@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="#-meet-yadi">Meet Yadi</a> ·
+  <a href="#-fewer-tokens-same-meaning">Saves tokens</a> ·
   <a href="#-early-days-an-honest-status">Status</a> ·
   <a href="#-why-its-safe-to-use">Privacy</a> ·
   <a href="#-try-it">Try it</a> ·
@@ -18,14 +19,28 @@ Hold **Y**, say what you need the way it comes out (ums, restarts, "no wait" and
 hands you back a clean, structured prompt to paste into any AI assistant. Speech recognition and
 the language model both run **on your own computer**, so after a one-time setup Yadi works offline.
 
+## 🪙 Fewer tokens, same meaning
+
+Talking is wordy. Paste a raw transcript into an AI assistant and you pay for every "um", every
+restart and every idea you took back. Yadi sends only what matters: the filler and the retracted
+words are gone, nothing is said twice, and a simple request stays one plain sentence.
+
+The more you ramble, the more you save. When the prompt comes out shorter than what you said,
+Yadi throws a little confetti and tells you roughly how many tokens you saved. The estimate stays
+on screen under your words and under the prompt. Counts are approximate (about 4 characters per
+token). A very short request can come out a little longer, because the prompt adds structure and
+one line asking the assistant to check with you instead of guessing. Yadi only celebrates real
+savings.
+
 ## ✨ From blabbing to a real prompt
 
 <p align="center">
   <img src=".github/readme/blab-to-prompt.svg" alt="A rambling transcript (okay so um, I need to email my landlord, the heater's been broken since Monday, no wait, Sunday...) becomes a prompt with a Task, Context and Constraints." width="100%">
 </p>
 
-Yadi drops the filler, keeps your corrections and
-sorts what you said into **Task**, **Context**, **Constraints** and **Output**.
+Yadi drops the filler and the words you took back. A change stays only when it is the point
+("tell the team the demo moved to Friday"). Then it sorts what you said into **Task**,
+**Context**, **Constraints** and **Output**, without repeating anything the task already says.
 
 The model never runs your prompt. It only picks out what you said, and every detail needs a
 quote from you as evidence. Plain code then lays the prompt out. That way Yadi can't invent
@@ -33,13 +48,13 @@ requirements you never mentioned.
 
 ## 🌱 Early days: an honest status
 
-Yadi is at **version 0.1**, its first version. Please treat it as an early preview:
+Yadi is at **version 0.1.1**, still its first steps. Please treat it as an early preview:
 
 - **Only tested on macOS** (Apple Silicon). The Windows code is in the project but has not been
   tried on a real Windows PC yet.
 - **Testing so far covers the basics:** setup, recording, the transcript, making the prompt and
   copying it. Long sessions, unusual hardware and edge cases have had little attention.
-- **The models will get better.** A few small models have been scored on a 42-case test set, and
+- **The models will get better.** A few small models have been scored on a 44-case test set, and
   more tuning, more models and better prompts are on the way.
 - **The installers aren't signed yet,** so macOS and Windows warn you the first time you open
   Yadi. [Try it](#-try-it) shows how to get past the warning.
@@ -71,8 +86,9 @@ Your voice and your words never leave your computer. Here's how:
   normal use the only connection Yadi makes is to Ollama on your own machine (`127.0.0.1`).
 - **Nothing is kept.** Audio only lives in memory while you record and is dropped as soon as the
   transcript is done. Transcripts, prompts and attachments are never saved to disk and never
-  written to logs (tests check this). The only things saved are your settings and the words you
-  ask Yadi to remember.
+  written to logs (tests check this). The only things saved are your settings, the words you
+  ask Yadi to remember, and a running count of the tokens Yadi saved you (numbers only, never
+  your words).
 - **No accounts, no telemetry, no analytics.** Yadi doesn't know who you are and doesn't want to.
 - **Locked-down window.** The app's content-security policy blocks every outside connection.
 - **Checked downloads.** Every speech model is verified against a known SHA-256 fingerprint. The
@@ -104,8 +120,8 @@ Yadi's own code, which only fetches from those addresses.
 
 | Your computer         | Download                                                                                                           |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| macOS (Apple Silicon) | [Yadi_0.1.0_aarch64.dmg](https://github.com/elara-studio/Yadi/releases/latest/download/Yadi_0.1.0_aarch64.dmg)     |
-| Windows (x64)         | [Yadi_0.1.0_x64-setup.exe](https://github.com/elara-studio/Yadi/releases/latest/download/Yadi_0.1.0_x64-setup.exe) |
+| macOS (Apple Silicon) | [Yadi_0.1.1_aarch64.dmg](https://github.com/elara-studio/Yadi/releases/latest/download/Yadi_0.1.1_aarch64.dmg)     |
+| Windows (x64)         | [Yadi_0.1.1_x64-setup.exe](https://github.com/elara-studio/Yadi/releases/latest/download/Yadi_0.1.1_x64-setup.exe) |
 
 All versions and release notes are on the [Releases page](https://github.com/elara-studio/Yadi/releases/latest).
 
