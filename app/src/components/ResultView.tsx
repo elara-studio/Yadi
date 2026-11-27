@@ -155,8 +155,13 @@ export function ResultView({ result, revealMs = 450, attachmentText, onRegenerat
             Make it again
           </button>
         ) : null}
-        <span className="result-tokens" data-testid="token-line">
-          ≈ {result.tokensIn} → ≈ {result.tokensOut} tokens (approximate)
+        <span
+          className="result-tokens"
+          data-testid="token-line"
+          title="Approximate: about 4 characters per token"
+        >
+          ≈ {result.tokensOut} tokens
+          {result.tokensSaved > 0 ? ` · saved ≈ ${result.tokensSaved}` : ""}
         </span>
       </div>
       {older.length > 0 && (

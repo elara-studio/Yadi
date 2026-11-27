@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import {
@@ -14,8 +14,10 @@ import { AboutView } from "../../about/AboutView";
 import { ProcessErrorView } from "../../components/ProcessErrorView";
 import { ProcessingView } from "../../components/ProcessingView";
 import { ResultView } from "../../components/ResultView";
+import { SavingsCelebration } from "../../components/SavingsCelebration";
 import { TranscriptView } from "../../components/TranscriptView";
 import { SettingsView } from "../../settings/SettingsView";
+import { useAnimations } from "../../settings/useAnimations";
 import { SetupWizard } from "../../setup/SetupWizard";
 import { createTauriSetupApi, isMockSetup, type SetupApi } from "../../setup/api";
 import { createMockSetupApi } from "../../setup/mockApi";
@@ -75,6 +77,21 @@ export function ChatWindow() {
   const [result, setResult] = useState<ResultPayload | null>(null);
   const [processError, setProcessError] = useState<ProcessErrorPayload | null>(null);
   const [transcript, setTranscript] = useState<TranscriptSnapshot>({ segments: [], partial: "" });
+  const animated = useAnimations();
+  // The result being celebrated ("You saved ≈ N tokens"), once per new prompt.
+  const [celebrating, setCelebrating] = useState<ResultPayload | null>(null);
+  const celebratedId = useRef<number | null>(null);
+  const endCelebration = useCallback(() => setCelebrating(null), []);
+
+  useEffect(() => {
+    if (!result) {
+      setCelebrating(null);
+      return;
+    }
+    if (result.id === celebratedId.current) return; // the same result sent again (SYNC)
+    celebratedId.current = result.id;
+    setCelebrating(result.tokensSaved > 0 ? result : null);
+  }, [result]);
 
   // Settings on screen: Y types normally (e.g. in "My words") and neither records nor summons.
   // A hidden chat may still remember the Settings view, so it only counts while it is shown.
@@ -236,12 +253,23 @@ export function ChatWindow() {
                 state={app.state}
                 editing={app.editing}
                 send={sendToController}
+                tokens={app.state === "result" && result ? result.tokensIn : undefined}
               />
             </div>
             <AttachmentBar {...attachments} />
             <div className="chat-hint">
               {app.state === "result" && result ? RESULT_KEY_HINT : KEY_HINT}
             </div>
+            {celebrating && app.state === "result" && view === "chat" && (
+              <SavingsCelebration
+                key={celebrating.id}
+                saved={celebrating.tokensSaved}
+                tokensIn={celebrating.tokensIn}
+                tokensOut={celebrating.tokensOut}
+                animated={animated}
+                onDone={endCelebration}
+              />
+            )}
           </>
         )}
       </div>

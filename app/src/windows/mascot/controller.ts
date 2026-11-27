@@ -13,6 +13,7 @@ import {
   type TranscriptSnapshot,
   estimateTokens,
   initialModel,
+  tokensSaved,
   parseAttachmentMeta,
   redactForLog,
   transition,
@@ -55,12 +56,16 @@ export interface RecentItem {
 
 /** Payload of `app:result`: the finished prompt and what the result view shows around it. */
 export interface ResultPayload {
+  /** Different for every prompt made; the same when a result is only sent again (SYNC). */
+  id: number;
   prompt: string;
   /** The model's answers could not be used, so this is a minimal prompt. */
   degraded: boolean;
-  /** Approximate token counts (chars / 4). */
+  /** Approximate token counts (chars / 4): the recorded message as it was, and the prompt. */
   tokensIn: number;
   tokensOut: number;
+  /** Approximate tokens saved by sending the prompt instead of the message; 0 when none. */
+  tokensSaved: number;
   /** The last 10 prompts of this run of the app, newest first (includes this one). */
   recent: RecentItem[];
 }
@@ -235,6 +240,7 @@ export class Controller {
   private abort: AbortController | null = null;
   private recent: RecentItem[] = [];
   private lastResult: ResultPayload | null = null;
+  private resultCount = 0;
   private lastError: ProcessErrorPayload | null = null;
   /** Name, type and the start of each attachment (the chat window keeps the full text). */
   private attachments: Attachment[] = [];
@@ -484,11 +490,15 @@ export class Controller {
       0,
       RECENT_LIMIT,
     );
+    const tokensIn = estimateTokens(transcript);
+    const tokensOut = estimateTokens(result.prompt);
     this.lastResult = {
+      id: ++this.resultCount,
       prompt: result.prompt,
       degraded: result.degraded,
-      tokensIn: estimateTokens(transcript),
-      tokensOut: estimateTokens(result.prompt),
+      tokensIn,
+      tokensOut,
+      tokensSaved: tokensSaved(tokensIn, tokensOut),
       recent: this.recent,
     };
     void this.ports.broadcastResult(this.lastResult);

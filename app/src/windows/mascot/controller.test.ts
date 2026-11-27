@@ -751,7 +751,16 @@ describe("prompt pipeline in the processing flow", () => {
       degraded: false,
       tokensIn: Math.ceil(TRANSCRIPT.length / 4),
       tokensOut: Math.ceil("Task: Write a short email.".length / 4),
+      tokensSaved:
+        Math.ceil(TRANSCRIPT.length / 4) - Math.ceil("Task: Write a short email.".length / 4),
     });
+  });
+
+  it("a prompt longer than the message saves nothing", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("x".repeat(TRANSCRIPT.length * 2)));
+    await process(controller);
+    expect(lastResult(ports)?.tokensSaved).toBe(0);
   });
 
   it("reports the stages in order, with the cleaned text, and clears them at the end", async () => {
@@ -942,9 +951,23 @@ describe("prompt pipeline in the processing flow", () => {
     const { controller, ports } = session();
     pipeline(ports).mockResolvedValue(pipelineResult("Task: one"));
     await process(controller);
+    const id = lastResult(ports)?.id;
     (ports.broadcastResult as ReturnType<typeof vi.fn>).mockClear();
     controller.handleAppEvent({ type: "SYNC" });
     expect(lastResult(ports)?.prompt).toBe("Task: one");
+    expect(lastResult(ports)?.id).toBe(id); // the same result: no second celebration
+  });
+
+  it("each new prompt gets a new result id", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: one"));
+    await process(controller);
+    const first = lastResult(ports)!.id;
+    controller.handleAppEvent({ type: "PROCESS_RETRY" });
+    await controller.whenSettled();
+    await flush();
+    await flush();
+    expect(lastResult(ports)!.id).toBeGreaterThan(first);
   });
 
   it("warms the language model when setup is known to be complete, and after setup finishes", async () => {

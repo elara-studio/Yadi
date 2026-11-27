@@ -7,10 +7,12 @@ const PROMPT = "Role: Plumber\nTask: Fix the sink.\nIf anything is missing, ask 
 
 function result(extra: Partial<ResultPayload> = {}): ResultPayload {
   return {
+    id: 1,
     prompt: PROMPT,
     degraded: false,
     tokensIn: 30,
     tokensOut: 120,
+    tokensSaved: 0,
     recent: [{ prompt: PROMPT, at: 1 }],
     ...extra,
   };
@@ -103,9 +105,19 @@ describe("ResultView", () => {
     expect(screen.getByRole("button", { name: "Could not copy" })).toBeInTheDocument();
   });
 
-  it("shows the approximate token line", () => {
+  it("shows the prompt's approximate tokens under it", () => {
     render(<ResultView result={result()} revealMs={0} />);
-    expect(screen.getByTestId("token-line")).toHaveTextContent("≈ 30 → ≈ 120 tokens (approximate)");
+    expect(screen.getByTestId("token-line")).toHaveTextContent(/^≈ 120 tokens$/);
+  });
+
+  it("adds what was saved when the prompt is shorter than the message", () => {
+    render(
+      <ResultView
+        result={result({ tokensIn: 120, tokensOut: 30, tokensSaved: 90 })}
+        revealMs={0}
+      />,
+    );
+    expect(screen.getByTestId("token-line")).toHaveTextContent("≈ 30 tokens · saved ≈ 90");
   });
 
   it("shows a notice for a degraded prompt, and none otherwise", () => {

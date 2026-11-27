@@ -197,12 +197,55 @@ describe("ChatWindow", () => {
 
   describe("result and errors (Task 19)", () => {
     const RESULT = {
+      id: 1,
       prompt: "Task: Fix the sink.",
       degraded: false,
       tokensIn: 10,
       tokensOut: 40,
+      tokensSaved: 0,
       recent: [{ prompt: "Task: Fix the sink.", at: 1 }],
     };
+    const SAVING = { ...RESULT, id: 2, tokensIn: 60, tokensOut: 15, tokensSaved: 45 };
+    const SPOKEN = { segments: [{ id: 0, text: "so um fix the sink please" }], partial: "" };
+
+    it("celebrates a prompt that saved tokens, once per new prompt", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:state")?.({ payload: { state: "result", editing: false } }));
+      act(() => handlers.get("app:result")?.({ payload: SAVING }));
+      expect(await screen.findByTestId("celebration")).toHaveTextContent(
+        "You saved ≈ 45 tokens by using Yadi",
+      );
+      // Clicking it closes it; the same result sent again (SYNC) does not bring it back.
+      fireEvent.click(screen.getByRole("button", { name: /You saved/ }));
+      expect(screen.queryByTestId("celebration")).not.toBeInTheDocument();
+      act(() => handlers.get("app:result")?.({ payload: { ...SAVING } }));
+      expect(screen.queryByTestId("celebration")).not.toBeInTheDocument();
+      // A new prompt celebrates again.
+      act(() => handlers.get("app:result")?.({ payload: { ...SAVING, id: 3 } }));
+      expect(screen.getByTestId("celebration")).toBeInTheDocument();
+    });
+
+    it("does not celebrate a prompt that saved nothing", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:state")?.({ payload: { state: "result", editing: false } }));
+      act(() => handlers.get("app:result")?.({ payload: RESULT }));
+      await screen.findByTestId("prompt-text");
+      expect(screen.queryByTestId("celebration")).not.toBeInTheDocument();
+    });
+
+    it("shows the recorded message's tokens under the transcript, and the prompt's under it", async () => {
+      render(<ChatWindow />);
+      await act(async () => {});
+      act(() => handlers.get("app:transcript")?.({ payload: SPOKEN }));
+      act(() => handlers.get("app:state")?.({ payload: { state: "result", editing: false } }));
+      act(() => handlers.get("app:result")?.({ payload: SAVING }));
+      expect(await screen.findByTestId("transcript-tokens")).toHaveTextContent(
+        "≈ 60 tokens as recorded",
+      );
+      expect(screen.getByTestId("token-line")).toHaveTextContent("≈ 15 tokens · saved ≈ 45");
+    });
 
     it("shows the prompt card in the result state, above the transcript", async () => {
       render(<ChatWindow />);

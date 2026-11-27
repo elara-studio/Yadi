@@ -588,7 +588,8 @@ samp {
   cursor: not-allowed;
 }
 .transcript-box {
-  flex: 1;
+  /* Sized to its text (still shrinks and scrolls when long), so the token note sits under it. */
+  flex: 0 1 auto;
   min-height: 0;
   overflow: auto;
   line-height: 1.6;
@@ -1045,4 +1046,136 @@ samp {
   .shortcut-keys--recording {
     animation: none;
   }
+}
+
+/* "You saved ≈ N tokens": confetti and the mascot over the chat for a moment. */
+.celebration {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: celebration-fade 2.8s ease-in-out forwards;
+}
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  width: 7px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.45, 1);
+  animation-fill-mode: forwards;
+}
+.confetti-piece--round {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), 620px) rotate(var(--rotate));
+  }
+}
+.celebration-card {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: 78%;
+  padding: 16px 20px 14px;
+  border: 1px solid rgb(241 95 54 / 35%);
+  border-radius: 16px;
+  background: var(--yadi-paper);
+  color: var(--yadi-ink);
+  font: inherit;
+  text-align: center;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 18%);
+  cursor: pointer;
+  animation: celebration-pop 380ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.celebration-mascot {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  animation: celebration-hop 700ms ease-in-out 2;
+}
+.celebration-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--yadi-orange);
+}
+.celebration-detail {
+  font-size: 12px;
+  opacity: 0.7;
+}
+@keyframes celebration-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes celebration-hop {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-14px) rotate(-6deg);
+  }
+  60% {
+    transform: translateY(0) rotate(4deg);
+  }
+}
+@keyframes celebration-fade {
+  0%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* Animations off (Settings) or reduced motion (system): just the card, no movement. */
+.celebration--still,
+.celebration--still .celebration-card,
+.celebration--still .celebration-mascot {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration,
+  .celebration-card,
+  .celebration-mascot {
+    animation: none;
+  }
+  .confetti {
+    display: none;
+  }
+}
+
+/* Approximate token counts under the transcript and the prompt. */
+.token-note {
+  font-size: 11px;
+  opacity: 0.6;
 }

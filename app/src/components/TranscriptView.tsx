@@ -11,6 +11,8 @@ interface Props {
   /** The state machine's `editing` flag (Y does nothing while true). */
   editing: boolean;
   send: TranscriptSend;
+  /** Approximate tokens of the message as it was recorded, shown under it (with the result). */
+  tokens?: number;
 }
 
 type Mode =
@@ -27,7 +29,7 @@ const EMPTY = "Press Y and start talking.";
  *    Esc cancels);
  *  - double-click a word (or focus it and press Enter) to replace just that word.
  */
-export function TranscriptView({ snapshot, state, editing, send }: Props) {
+export function TranscriptView({ snapshot, state, editing, send, tokens }: Props) {
   const [mode, setMode] = useState<Mode>({ kind: "read" });
   const [offer, setOffer] = useState<string | null>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -178,6 +180,15 @@ export function TranscriptView({ snapshot, state, editing, send }: Props) {
           </>
         )}
       </div>
+      {tokens !== undefined && hasText && (
+        <span
+          className="token-note"
+          data-testid="transcript-tokens"
+          title="Approximate: about 4 characters per token"
+        >
+          ≈ {tokens} tokens as recorded
+        </span>
+      )}
       {offer && (
         <div className="transcript-offer" role="status">
           <span>Remember &lsquo;{offer}&rsquo; for next time?</span>
