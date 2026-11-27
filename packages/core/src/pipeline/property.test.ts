@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderPrompt } from "./render";
+import { renderPrompt, tidyItem } from "./render";
 import type { Analysis } from "./types";
 import { normalizeForMatch, validateAnalysis } from "./validate";
 
@@ -71,9 +71,7 @@ describe("property: nothing unbacked reaches the rendered prompt", () => {
       const source = normalizeForMatch(transcript);
       const original = { Context: analysis.context, Constraints: analysis.constraints };
       for (const b of bullets) {
-        const backing = original[b.section].filter(
-          (i) => i.text.replace(/\s+/g, " ").trim() === b.text,
-        );
+        const backing = original[b.section].filter((i) => tidyItem(i.text) === b.text);
         expect(backing.length, `run ${run}: "${b.text}" has no source item`).toBeGreaterThan(0);
         // at least one source item with that text carries real evidence
         const proven = backing.some((i) => {

@@ -85,7 +85,63 @@ describe("renderPrompt (golden outputs)", () => {
   it("flattens line breaks inside items", () => {
     const text = renderPrompt({ ...full, task: "Do\nthis\n\nnow", context: ["a\nb"] });
     expect(text).toContain("Task: Do this now");
-    expect(text).toContain("- a b");
+    expect(text).toContain("- A b");
+  });
+
+  it("keeps a detail filed under both headings once, as the constraint", () => {
+    const text = renderPrompt({
+      ...full,
+      role: null,
+      task: "Plan a weekend in Porto",
+      context: [
+        "Two people traveling",
+        "All activities after 10 am",
+        "Budget 500 euros",
+        "Flying in on Friday",
+      ],
+      constraints: [
+        "Two people: me and my sister",
+        "No activities before 10 am",
+        "Budget 400 euros",
+      ],
+      output_format: null,
+      missing_info: [],
+    });
+    expect(text).not.toContain("Two people traveling");
+    expect(text).not.toContain("after 10 am");
+    expect(text).toContain("- Budget 500 euros");
+    expect(text).toContain("- Flying in on Friday");
+  });
+
+  it("drops limits the task already states, but keeps a negation", () => {
+    const text = renderPrompt({
+      ...full,
+      role: null,
+      task: "Write a short, friendly English Slack message to the team",
+      context: [],
+      constraints: ["Keep it short", "Friendly tone", "Not in English", "Under 50 words"],
+      output_format: "A Slack message",
+      missing_info: [],
+    });
+    expect(text).not.toContain("Keep it short");
+    expect(text).not.toContain("Friendly tone");
+    expect(text).not.toContain("Output:");
+    expect(text).toContain("- Not in English");
+    expect(text).toContain("- Under 50 words");
+  });
+
+  it("tidies spoken openers and casing in items, without touching the words", () => {
+    const text = renderPrompt({
+      ...full,
+      task: "Write a Slack message to the team",
+      context: ["so the release moved to Monday"],
+      constraints: ["And, it should be in English", "don't sound panicky,", "so-called pro tone"],
+      output_format: null,
+    });
+    expect(text).toContain("- The release moved to Monday");
+    expect(text).toContain("- It should be in English");
+    expect(text).toContain("- Don't sound panicky\n");
+    expect(text).toContain("- So-called pro tone");
   });
 
   it("lists several attachments in the [Attached: name (type)] form", () => {

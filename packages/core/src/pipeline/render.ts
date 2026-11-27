@@ -9,9 +9,23 @@ export const CLARIFY_LINE = "If anything is missing or unclear, ask me before an
 
 const oneLine = (s: string): string => s.replace(/\s+/g, " ").trim();
 
+/** Spoken linking words that can open an item ("And it should be in English") but add nothing. */
+const LEADING_LINK = /^(?:(?:and|so|but|also|oh|yeah)(?:\s*,\s*|\s+))+/i;
+
+/**
+ * One item as a tidy line: no leading linking words, no trailing comma or semicolon, first letter
+ * capitalised. Only removes or re-cases words, so it cannot change a detail.
+ */
+export function tidyItem(s: string): string {
+  const text = oneLine(s)
+    .replace(LEADING_LINK, "")
+    .replace(/[\s,;]+$/, "");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /**
  * Words that carry no detail of their own: articles, pronouns, request framing ("help me",
- * "I want") and the "Assumed:" label. An item made only of these and of words the task already
+ * "I want", "the user", "the task is") and the "Assumed:" label. An item made only of these and of words the task already
  * has adds nothing to the prompt.
  */
 const FRAMING_WORDS = new Set(
@@ -21,7 +35,9 @@ const FRAMING_WORDS = new Set(
     "should shall may might must i me my mine we us our ours you your yours he him his she her they " +
     "them their there here so then just also really very please help want wants wanted need needs " +
     "needed like would i'm im it s t some any all assumed which what who whom whose when where how " +
-    "make sure get got let lets let's"
+    "make sure get got let lets let's user person task request goal " +
+    // words that only frame a limit: "Keep it short", "Friendly tone", "Plain style"
+    "keep tone style format needed required include including use using"
   ).split(" "),
 );
 
@@ -37,6 +53,7 @@ const IRREGULAR: Record<string, string> = {
   took: "take",
   given: "give",
   gave: "give",
+  no: "not",
 };
 
 /** A rough stem: irregular forms and plain endings ("days" -> "day", "uses" -> "use"). */
@@ -56,7 +73,8 @@ function detailWords(text: string): string[] {
   return normalizeForMatch(text)
     .split(" ")
     .filter((w) => w !== "" && !FRAMING_WORDS.has(w))
-    .map(stem);
+    .map(stem)
+    .filter((w) => !FRAMING_WORDS.has(w)); // "uses" -> "use"
 }
 
 /** Same word, allowing simple endings: "restarts"/"restarting", "email"/"emails". */
@@ -70,6 +88,18 @@ function sameWord(a: string, b: string): boolean {
 /** True when every detail word of `item` already appears in `words`. */
 function coveredBy(item: string[], words: readonly string[]): boolean {
   return item.every((w) => words.some((x) => sameWord(w, x)));
+}
+
+/**
+ * True when `item` says what `other` says in other words: at least two of its detail words are in
+ * `other` and at most one is not, and that one is no number. "Two people traveling" is a near
+ * repeat of "Two people: me and my sister"; "Budget 400 euros" is not one of "Budget 500 euros".
+ */
+function nearRepeat(item: string[], other: readonly string[]): boolean {
+  const missing = item.filter((w) => !other.some((x) => sameWord(w, x)));
+  return (
+    item.length - missing.length >= 2 && missing.length <= 1 && !missing.some((w) => /\d/.test(w))
+  );
 }
 
 /**
@@ -106,12 +136,18 @@ export function renderPrompt(
   alwaysClarify = false,
 ): string {
   const task = oneLine(analysis.task);
-  const context = withoutRepeats(task, analysis.context.map(oneLine));
-  const constraints = withoutRepeats(task, analysis.constraints.map(oneLine));
+  const tidy = (items: readonly string[]) => items.map(tidyItem).filter((s) => s !== "");
+  const constraints = withoutRepeats(task, tidy(analysis.constraints));
+  // A detail the model filed under both headings, even in other words, is kept once: as the constraint.
+  const constraintWords = constraints.map(detailWords);
+  const context = withoutRepeats(task, tidy(analysis.context)).filter((item) => {
+    const own = detailWords(item);
+    return !constraintWords.some((c) => nearRepeat(own, c));
+  });
   // The output format is dropped when the task or a constraint already says it ("a short email").
   const output =
     analysis.output_format &&
-    withoutRepeats([task, ...constraints].join(" "), [oneLine(analysis.output_format)])[0];
+    withoutRepeats([task, ...constraints].join(" "), tidy([analysis.output_format]))[0];
 
   const lines: string[] = [];
   if (analysis.role) lines.push(`Role: ${oneLine(analysis.role)}`);
