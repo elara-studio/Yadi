@@ -1,6 +1,6 @@
 # Prompt-pipeline eval set
 
-`cases.jsonl`: 42 messy spoken inputs (one JSON object per line) used to compare local models and pipeline versions.
+`cases.jsonl`: 44 messy spoken inputs (one JSON object per line) used to compare local models and pipeline versions.
 
 ## Fields
 

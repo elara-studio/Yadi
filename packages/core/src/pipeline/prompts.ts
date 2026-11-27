@@ -105,13 +105,19 @@ export function normalizeMessages(text: string, vocabulary: readonly string[]): 
     "Rules:",
     "- Return the same message, cleaned. Keep every fact, name, number and request exactly as meant.",
     "- Remove leftover filler (like, you know, I mean, kind of) only where it carries no meaning.",
-    '- When the speaker corrects themselves ("no wait", "I mean", "actually", "sorry"), keep only the final version.',
+    '- When the speaker corrects a slip ("no wait", "I mean", "actually", "sorry", "make that"), keep only the final version and drop the words they took back.',
+    "- When the speaker says something changed (a meeting moved, a plan changed), keep the old version only if the request is about the change itself, for example telling others that it moved. Otherwise state only what is true now.",
     "- Fix words the speech recognizer probably got wrong, using the context, especially technical terms.",
     "- Fix numbers, units and punctuation. Write numbers as digits.",
     "- Do NOT add information, advice or opinions. Do NOT answer the request. Do NOT drop details.",
     vocab.length > 0
       ? `- Preferred spellings (use these exact spellings when the speaker means them): ${vocab.join(", ")}.`
       : "",
+    "",
+    "Examples of corrections:",
+    '- "book a table for four no wait five people" -> "Book a table for 5 people."',
+    '- "remind me to prepare for the review on Thursday, actually it got moved to Friday" -> "Remind me to prepare for the review on Friday."',
+    '- "tell the client the review moved from Thursday to Friday" -> "Tell the client the review moved from Thursday to Friday."',
     "",
     'Reply with JSON only: {"clean_text": "..."}',
   ]
