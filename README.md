@@ -271,7 +271,23 @@ pnpm eval --model <ollama-tag> [--judge <ollama-tag>]   # score a model on eval/
 
 ## 📄 Licence
 
-Application code: Apache-2.0 (see `LICENSE`; a placeholder until the copyright holder confirms).
+Yadi's code is licensed under the
+[PolyForm Shield License 1.0.0](https://polyformproject.org/licenses/shield/1.0.0) (see `LICENSE`).
+Copyright 2026 Elara Software Services FZ-LLC.
+
+- **Free to use, change and share,** for personal use and inside companies alike.
+- **Credit us:** anything you share that includes Yadi's code must come with the licence and its
+  `Required Notice:` line.
+- **No competing products.** You may not use Yadi's code to offer a product that competes with Yadi
+  or with anything we build with it, whether you charge for it or give it away. That includes
+  republishing Yadi under another name.
+
+Questions about the licence, or about using Yadi in a way it doesn't cover: write to
+[contactus@elarasoftwareservices.com](mailto:contactus@elarasoftwareservices.com).
+
+Versions 0.1.0 and 0.1.1 were released under Apache-2.0 and stay available under those terms.
+Everything after 0.1.1 is under the PolyForm Shield License only.
+
 Bundled and downloaded third-party components, models and runtimes carry their own licences. They
 are listed in the app under **About** and in `THIRD_PARTY_NOTICES.txt` inside the installer.
 

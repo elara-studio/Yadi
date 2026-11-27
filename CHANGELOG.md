@@ -3,6 +3,15 @@
 What changed in each version of Yadi, newest first. Downloads are on the
 [Releases page](https://github.com/elara-studio/Yadi/releases).
 
+## Unreleased
+
+### Licence
+
+- **New licence: PolyForm Shield 1.0.0.** Yadi's code after 0.1.1 is free to use, change and
+  share, also inside companies, as long as you keep the copyright notice. You may not use it to
+  offer a product that competes with Yadi, including republishing it under another name.
+  Versions 0.1.0 and 0.1.1 stay under Apache-2.0.
+
 ## 0.1.1 · 2026-11-27
 
 ### New

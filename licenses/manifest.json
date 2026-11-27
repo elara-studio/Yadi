@@ -4,11 +4,11 @@
     "name": "Yadi",
     "kind": "app",
     "version": "0.1.1",
-    "license_spdx": "Apache-2.0",
-    "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
-    "attribution": "Copyright Elara Software Services FZ-LLC. Placeholder licence (decision D1) until confirmed.",
+    "license_spdx": "PolyForm-Shield-1.0.0",
+    "license_url": "https://polyformproject.org/licenses/shield/1.0.0",
+    "attribution": "Copyright 2026 Elara Software Services FZ-LLC. Versions 0.1.0 and 0.1.1 were released under Apache-2.0.",
     "notice_file": "texts/yadi-LICENSE.txt",
-    "source_url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    "source_url": "https://raw.githubusercontent.com/polyformproject/polyform-licenses/1.0.0/PolyForm-Shield-1.0.0.md"
   },
   {
     "id": "ollama",
