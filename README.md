@@ -45,7 +45,8 @@ Yadi is at **version 0.1.1**, still its first steps. Please treat it as an early
 - **The models will get better.** A few small models have been scored on a 44-case test set, and
   more tuning, more models and better prompts are on the way.
 - **The installers aren't signed yet,** so macOS and Windows warn you the first time you open
-  Yadi. [Try it](#-try-it) shows how to get past the warning.
+  a downloaded Yadi. Building it from source avoids the warning; [Try it](#-try-it) shows both
+  ways and how to get past the warning.
 
 Much more is coming. If something breaks or feels off, an issue is very welcome.
 
@@ -104,7 +105,28 @@ Yadi's own code, which only fetches from those addresses.
 
 ## 🚀 Try it
 
-### Download
+There are two ways to get Yadi. Building it yourself is the smoothest for now, because an app you
+build on your own computer opens without any security warning.
+
+### Option 1: build from source (recommended)
+
+You need Node 20+, pnpm, Rust (stable) and the Xcode Command Line Tools on macOS. On Windows you
+need the MSVC build tools and WebView2.
+
+```sh
+git clone https://github.com/elara-studio/Yadi.git
+cd Yadi
+pnpm install
+pnpm build        # builds the installer (a .dmg on macOS, an NSIS .exe on Windows)
+```
+
+The installer lands in `app/src-tauri/target/release/bundle/` (`dmg/` on macOS, `nsis/` on
+Windows). Open it and install Yadi as usual.
+
+To try changes while you work on Yadi, `pnpm dev` runs it in development mode instead ("Platform
+notes" under Development below explains how that differs).
+
+### Option 2: download the installer
 
 | Your computer         | Download                                                                                                           |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -113,22 +135,19 @@ Yadi's own code, which only fetches from those addresses.
 
 All versions and release notes are on the [Releases page](https://github.com/elara-studio/Yadi/releases/latest).
 
-**The installers aren't signed yet**, so your computer will warn you the first time:
+**These installers aren't signed yet.** Signing is how Apple and Microsoft recognise who made an
+app, and it hasn't been set up for Yadi yet, so your computer will warn you the first time:
 
-- **macOS:** open the DMG and drag Yadi to Applications. Open Yadi; when macOS says it can't be
-  opened, go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+- **macOS** says _Apple could not verify "Yadi" is free of malware_. Open the DMG and drag Yadi to
+  Applications, then open Yadi and click **Done** on the warning. Go to **System Settings →
+  Privacy & Security**, scroll down to the message about Yadi and click **Open Anyway**, then
+  confirm with your password or Touch ID. You only need to do this once per version.
+  If you prefer the Terminal, this does the same:
+  `xattr -dr com.apple.quarantine /Applications/Yadi.app`
 - **Windows:** if SmartScreen says "Windows protected your PC", click **More info → Run anyway**.
 
-### Run from source
-
-```sh
-pnpm install
-pnpm dev          # runs the app in development mode
-pnpm build        # builds the installer (a .dmg on macOS, an NSIS .exe on Windows)
-```
-
-You need Node 20+, pnpm, Rust (stable) and the Xcode Command Line Tools on macOS. On Windows you
-need the MSVC build tools and WebView2.
+Because the downloaded app isn't signed, macOS may ask you again for the Microphone and
+Accessibility permissions after you update Yadi. The same happens after you rebuild it from source.
 
 ### First run
 
@@ -244,7 +263,9 @@ pnpm eval --model <ollama-tag> [--judge <ollama-tag>]   # score a model on eval/
   Quit, unless you set `YADI_SUMMON_LISTENER=1`. They also show licences only after
   `pnpm check:licenses`, and macOS gives permissions to your terminal or editor, not to Yadi.
 - Pushing a version tag (`v*`) builds the installers and attaches them to a draft GitHub
-  release. They are not signed or notarised yet.
+  release; press Publish on GitHub to make it the latest release. The macOS build has only an
+  ad-hoc signature (no Developer ID, not notarised) and the Windows build is unsigned, so both
+  show the first-run warnings described in [Try it](#-try-it).
 
 </details>
 
