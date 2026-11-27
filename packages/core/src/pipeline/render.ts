@@ -22,11 +22,38 @@ const FRAMING_WORDS = new Set(
   ).split(" "),
 );
 
-/** The detail words of `text`: normalized, without framing words. */
+/** Irregular forms that a suffix rule cannot reach. */
+const IRREGULAR: Record<string, string> = {
+  written: "write",
+  wrote: "write",
+  built: "build",
+  made: "make",
+  ran: "run",
+  sent: "send",
+  taken: "take",
+  took: "take",
+  given: "give",
+  gave: "give",
+};
+
+/** A rough stem: irregular forms and plain endings ("days" -> "day", "uses" -> "use"). */
+export function stem(word: string): string {
+  if (IRREGULAR[word]) return IRREGULAR[word];
+  if (/\d/.test(word) || word.length <= 3) return word;
+  if (word.endsWith("ies") && word.length > 4) return `${word.slice(0, -3)}y`;
+  for (const suffix of ["ing", "ed", "es", "s"]) {
+    if (word.endsWith(suffix) && word.length - suffix.length >= 3 && !word.endsWith("ss"))
+      return word.slice(0, -suffix.length);
+  }
+  return word;
+}
+
+/** The detail words of `text`: normalized and stemmed, without framing words. */
 function detailWords(text: string): string[] {
   return normalizeForMatch(text)
     .split(" ")
-    .filter((w) => w !== "" && !FRAMING_WORDS.has(w));
+    .filter((w) => w !== "" && !FRAMING_WORDS.has(w))
+    .map(stem);
 }
 
 /** Same word, allowing simple endings: "restarts"/"restarting", "email"/"emails". */

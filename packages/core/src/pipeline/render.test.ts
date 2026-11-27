@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLARIFY_LINE, renderMinimal, renderPrompt, withoutRepeats } from "./render";
+import { CLARIFY_LINE, renderMinimal, renderPrompt, stem, withoutRepeats } from "./render";
 import type { ValidAnalysis } from "./types";
 
 const full: ValidAnalysis = {
@@ -158,5 +158,30 @@ describe("withoutRepeats", () => {
 
   it("drops an 'Assumed:' item the task already states", () => {
     expect(withoutRepeats("Explain derivatives to a beginner", ["Assumed: beginner"])).toEqual([]);
+  });
+
+  it("matches other forms of the same word", () => {
+    expect(
+      withoutRepeats("Write a Python script that renames files.", [
+        "The script is written in Python",
+      ]),
+    ).toEqual([]);
+    expect(withoutRepeats("Plan a five-day-a-week workout.", ["Five days a week"])).toEqual([]);
+  });
+});
+
+describe("stem", () => {
+  it("removes plain endings and maps irregular forms", () => {
+    expect(["days", "uses", "running", "renamed", "queries", "written"].map(stem)).toEqual([
+      "day",
+      "use",
+      "runn",
+      "renam",
+      "query",
+      "write",
+    ]);
+  });
+  it("leaves short words, numbers and double-s words alone", () => {
+    expect(["bus", "10s", "class"].map(stem)).toEqual(["bus", "10s", "class"]);
   });
 });
