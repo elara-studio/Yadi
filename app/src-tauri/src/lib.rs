@@ -11,6 +11,8 @@ mod settings;
 mod setup;
 mod stt;
 mod tiers;
+#[cfg(target_os = "macos")]
+mod uninstall;
 mod updates;
 mod vocabulary;
 mod windows;

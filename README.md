@@ -187,6 +187,12 @@ and jargon), re-run or repair setup, licences, check for updates and a reset.
   Settings > Repair models.
 - **The first prompt is slow.** The model is loading into memory; later prompts are faster. A
   smaller model (Settings) is faster still.
+- **"Yadi can't be moved to the Trash because it's open" (macOS).** After you quit, a small helper
+  keeps listening so Hold-Y can open Yadi again. Use **Uninstall Yadi…** in the tray menu
+  instead: it stops the helper, removes the login items and moves Yadi to the Trash (optionally
+  with its settings and models). Ollama and its models stay installed.
+- **Holding Y doesn't reopen Yadi after quitting.** The helper's log is in
+  `~/Library/Logs/com.elarasoftware.yadi/summon-listener.log`.
 - **Something else.** Run the app from a terminal to see its log. The log never contains your
   words, only events and errors.
 

@@ -48,8 +48,16 @@ pub fn plan(main_running: bool, settings: &Settings, hold_y_permitted: bool) -> 
 pub fn run(context: tauri::Context) {
     let app = tauri::Builder::default()
         .plugin(
+            // Also a file (Yadi's log folder, "summon-listener.log"): launchd drops stdout, and
+            // the file is the only way to see why a summon did not open Yadi. The listener
+            // logs states only, never what is typed.
             tauri_plugin_log::Builder::new()
-                .targets([Target::new(TargetKind::Stdout)])
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::LogDir {
+                        file_name: Some("summon-listener".into()),
+                    }),
+                ])
                 .level(log::LevelFilter::Info)
                 .build(),
         )
@@ -140,7 +148,11 @@ fn watch(app: AppHandle, dir: PathBuf) {
                 settings = settings::read_file(&settings_file);
                 settings_stamp = stamp;
             }
-            permitted = permissions::status().all_granted();
+            let now = permissions::status().all_granted();
+            if now != permitted || was_running {
+                log::info!("summon listener: Accessibility granted: {now}");
+            }
+            permitted = now;
         }
         was_running = running;
         tick = tick.wrapping_add(1);

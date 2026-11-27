@@ -10,18 +10,28 @@ use super::MASCOT_LABEL;
 pub const ID_TOGGLE: &str = "toggle";
 pub const ID_ABOUT: &str = "about";
 pub const ID_QUIT: &str = "quit";
+pub const ID_UNINSTALL: &str = "uninstall";
 
 pub fn build_menu<R: Runtime, M: Manager<R>>(manager: &M) -> tauri::Result<Menu<R>> {
     let toggle = MenuItem::with_id(manager, ID_TOGGLE, "Show / Hide", true, None::<&str>)?;
     let about = MenuItem::with_id(manager, ID_ABOUT, "About", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(manager)?;
     let quit = MenuItem::with_id(manager, ID_QUIT, "Quit Yadi", true, None::<&str>)?;
+    // macOS only: Windows uninstalls through its installer. Quitting alone leaves the summon
+    // listener running, and it keeps Finder from moving Yadi to the Trash.
+    #[cfg(target_os = "macos")]
+    {
+        let uninstall =
+            MenuItem::with_id(manager, ID_UNINSTALL, "Uninstall Yadi…", true, None::<&str>)?;
+        Menu::with_items(manager, &[&toggle, &about, &sep, &quit, &uninstall])
+    }
+    #[cfg(not(target_os = "macos"))]
     Menu::with_items(manager, &[&toggle, &about, &sep, &quit])
 }
 
 /// Menu clicks are forwarded to the Controller (which lives in the mascot webview),
-/// except Quit which exits directly.
-pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
+/// except Quit which exits directly, and Uninstall which asks first.
+pub fn handle_menu_event(app: &AppHandle, id: &str) {
     match id {
         ID_TOGGLE => {
             let _ = app.emit_to(MASCOT_LABEL, "tray:toggle", ());
@@ -30,6 +40,8 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, id: &str) {
             let _ = app.emit_to(MASCOT_LABEL, "tray:about", ());
         }
         ID_QUIT => app.exit(0),
+        #[cfg(target_os = "macos")]
+        ID_UNINSTALL => crate::uninstall::confirm_and_run(app),
         _ => {}
     }
 }

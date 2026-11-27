@@ -3,6 +3,22 @@
 What changed in each version of Yadi, newest first. Downloads are on the
 [Releases page](https://github.com/elara-studio/Yadi/releases).
 
+## Unreleased
+
+### New
+
+- **Uninstall Yadi… (macOS).** In the tray menu. Stops the background helper, removes the login
+  items and moves Yadi to the Trash, optionally with your settings and downloaded models. Before,
+  Finder refused to delete Yadi because the helper was still running.
+
+### Fixed
+
+- **Hold-Y now reopens Yadi after you quit it (macOS).** The helper that listens while Yadi is
+  closed asked macOS to open Yadi, but macOS took the helper itself for the running Yadi and
+  opened nothing.
+- The helper now keeps a log (`~/Library/Logs/com.elarasoftware.yadi/summon-listener.log`), so a
+  summon that does not open Yadi can be traced.
+
 ## 0.1.1 · 2026-11-27
 
 ### New

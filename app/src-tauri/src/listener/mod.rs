@@ -137,7 +137,7 @@ pub fn on_main_exit(app: &AppHandle) {
 
 /// The `.app` bundle this program runs from, if any (`…/Yadi.app/Contents/MacOS/Yadi`).
 #[cfg(target_os = "macos")]
-fn app_bundle(exe: &Path) -> Option<PathBuf> {
+pub(crate) fn app_bundle(exe: &Path) -> Option<PathBuf> {
     let bundle = exe.parent()?.parent()?.parent()?;
     (bundle.extension()? == "app").then(|| bundle.to_path_buf())
 }
@@ -149,9 +149,16 @@ fn launch_main() -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
         // Through Launch Services, like a double-click, so Yadi is not the listener's child.
+        // `-n`: the listener runs from the same bundle, so without it Launch Services may take
+        // the listener for a running Yadi and only "activate" it. A real second Yadi is still
+        // stopped by the single-instance plugin.
         if let Some(bundle) = app_bundle(&exe) {
             cmd = Command::new("/usr/bin/open");
-            cmd.arg("-a").arg(bundle).arg("--args").arg(SUMMON_ARG);
+            cmd.arg("-n")
+                .arg("-a")
+                .arg(bundle)
+                .arg("--args")
+                .arg(SUMMON_ARG);
         } else {
             cmd = Command::new(&exe);
             cmd.arg(SUMMON_ARG);
@@ -165,8 +172,10 @@ fn launch_main() -> Result<(), String> {
     detach(&mut cmd);
     let mut child = cmd.spawn().map_err(|e| format!("cannot open Yadi: {e}"))?;
     // Collect the exit status so no zombie is left behind.
-    std::thread::spawn(move || {
-        let _ = child.wait();
+    std::thread::spawn(move || match child.wait() {
+        Ok(status) if !status.success() => log::warn!("opening Yadi failed: {status}"),
+        Err(e) => log::warn!("opening Yadi: {e}"),
+        Ok(_) => {}
     });
     Ok(())
 }

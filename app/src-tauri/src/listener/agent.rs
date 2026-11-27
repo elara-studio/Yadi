@@ -31,6 +31,15 @@ pub fn ensure(identifier: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Stops the listener and removes its login entry (Uninstall). Development builds included,
+/// so an entry registered with `YADI_SUMMON_LISTENER=1` can be cleaned up too.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn remove() -> Result<(), String> {
+    platform::remove()?;
+    log::info!("summon listener stopped and unregistered");
+    Ok(())
+}
+
 /// Starts the listener if it is registered but not running (Yadi is quitting).
 pub fn wake(listener_lock: &Path) {
     if !allowed() || super::is_held(listener_lock) {
@@ -154,6 +163,21 @@ mod platform {
         let service = format!("gui/{}/{LABEL}", uid()?);
         launchctl(&["kickstart", &service])
     }
+
+    /// `bootout` ends the running listener and unloads the entry; the plist goes too, so it
+    /// does not come back at the next login.
+    pub fn remove() -> Result<(), String> {
+        let service = format!("gui/{}/{LABEL}", uid()?);
+        if launchctl(&["print", &service]).is_ok() {
+            launchctl(&["bootout", &service])?;
+        }
+        let path = plist_path()?;
+        match std::fs::remove_file(&path) {
+            Ok(()) => Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(e) => Err(format!("cannot remove {}: {e}", path.display())),
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -187,6 +211,16 @@ mod platform {
         start(&super::current_exe()?)
     }
 
+    /// Removes the login entry. A running listener is ended by the caller (it holds a lock, not
+    /// a service handle Windows could stop).
+    pub fn remove() -> Result<(), String> {
+        let Ok(key) = windows_registry::CURRENT_USER.create(RUN_KEY) else {
+            return Ok(());
+        };
+        let _ = key.remove_value(VALUE);
+        Ok(())
+    }
+
     /// The listener takes its own lock and exits at once if one is already running.
     fn start(exe: &Path) -> Result<(), String> {
         let mut cmd = Command::new(exe);
@@ -207,6 +241,10 @@ mod platform {
     }
 
     pub fn wake() -> Result<(), String> {
+        Ok(())
+    }
+
+    pub fn remove() -> Result<(), String> {
         Ok(())
     }
 }
