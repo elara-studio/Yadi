@@ -63,7 +63,7 @@ describe("runEval", () => {
     expect(r.failed).toEqual(["concise"].filter(() => !r.checks.concise));
     expect(r.latency_ms).toBe(250);
     expect(r.degraded).toBe(false);
-    expect(r.prompt).toContain(CLARIFY_LINE);
+    expect(r.prompt).not.toContain(CLARIFY_LINE); // nothing was missing
     expect(seen).toEqual(["s-01 1/1"]);
   });
 

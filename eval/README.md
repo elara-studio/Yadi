@@ -21,9 +21,9 @@
 1. **Faithful**: every `must_include` item is present, and every number or name is exact.
 2. **No invention**: nothing from `must_not_add` is stated as fact.
 3. **Retractions honored**: nothing from `must_not_include` is present.
-4. **Template**: the prompt follows the fixed layout (Role, Task, Context, Constraints, Output, Attachments, Clarify line, in that order, empty sections left out). A request that is only a task may be a plain sentence followed by the clarify line.
+4. **Template**: the prompt follows the fixed layout (Role, Task, Context, Constraints, Output, Attachments, Clarify line, in that order, empty sections left out). A request that is only a task may be a plain sentence.
 5. **Concise**: the prompt is shorter than the transcript, or at most 1.5x for very short inputs, with no filler.
-6. **Clarify behavior**: if `expect_clarify` is true, the prompt tells the target agent to ask for the missing details. If it is false, no unnecessary questions are added.
+6. **Clarify behavior**: if `expect_clarify` is true, the prompt tells the target agent to ask for the missing details (the clarify line plus "Likely missing"). If it is false, neither is added.
 7. **Assumptions marked**: any deduced detail is labeled "Assumed:", never stated as fact.
 
 Score = passed checks / 7. Track the mean overall, per category, and tokens in vs out.

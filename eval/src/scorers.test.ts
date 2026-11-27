@@ -38,11 +38,12 @@ describe("deterministic checks", () => {
     it("a well-formed prompt passes", () => {
       expect(checkTemplate(and01, GOOD)).toBe(true);
     });
-    it("needs a Task line and the clarify line", () => {
+    it("needs a Task line once there are sections; the clarify line is optional", () => {
       expect(checkTemplate(and01, lines("Role: x", "Context:", "- a", "- b", CLARIFY_LINE))).toBe(
         false,
       );
-      expect(checkTemplate(and01, lines("Task: x", "Context:", "- a"))).toBe(false);
+      expect(checkTemplate(and01, lines("Task: x", "Context:", "- a"))).toBe(true);
+      expect(checkTemplate(and01, lines("Fix the lag."))).toBe(true);
     });
     it("accepts a plain task sentence when nothing else is left", () => {
       expect(checkTemplate(and01, lines("Fix the lag.", CLARIFY_LINE))).toBe(true);
@@ -145,8 +146,9 @@ describe("deterministic checks", () => {
 
   describe("clarify behaviour", () => {
     const needs = byId("and-04"); // expect_clarify: true
-    it("the clarify line is always required", () => {
-      expect(checkClarify(and01, lines("Task: x"))).toBe(false);
+    it("a complete request needs no clarify line; 'Likely missing' needs it", () => {
+      expect(checkClarify(and01, lines("Task: x"))).toBe(true);
+      expect(checkClarify(needs, lines("Task: x", "Likely missing: which device?"))).toBe(false);
     });
     it("'Likely missing' is required when clarification is expected", () => {
       expect(checkClarify(needs, lines("Task: x", CLARIFY_LINE))).toBe(false);

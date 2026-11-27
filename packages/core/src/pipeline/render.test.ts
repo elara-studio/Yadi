@@ -48,7 +48,7 @@ describe("renderPrompt (golden outputs)", () => {
       output_format: null,
       missing_info: [],
     });
-    expect(text).toBe(["Speed up the filtered list.", CLARIFY_LINE].join("\n"));
+    expect(text).toBe("Speed up the filtered list.");
   });
 
   it("does not repeat in Context what the task already says", () => {
@@ -61,9 +61,7 @@ describe("renderPrompt (golden outputs)", () => {
       output_format: "An email",
       missing_info: [],
     });
-    expect(text).toBe(
-      ["Write an email for a CV to send to the recruiter.", CLARIFY_LINE].join("\n"),
-    );
+    expect(text).toBe("Write an email for a CV to send to the recruiter.");
   });
 
   it("empty missing_info omits the 'Likely missing' line", () => {
@@ -71,9 +69,13 @@ describe("renderPrompt (golden outputs)", () => {
     expect(renderPrompt(full)).toContain("Likely missing: ");
   });
 
-  it("always ends with the clarify line when nothing is missing", () => {
-    const lines = renderPrompt({ ...full, missing_info: [] }).split("\n");
-    expect(lines[lines.length - 1]).toBe(CLARIFY_LINE);
+  it("asks to clarify only when something is likely missing", () => {
+    expect(renderPrompt({ ...full, missing_info: [] })).not.toContain(CLARIFY_LINE);
+    const lines = renderPrompt(full).split("\n");
+    expect(lines.slice(-2)).toEqual([
+      CLARIFY_LINE,
+      "Likely missing: Which React version?; Is the list virtualised?",
+    ]);
   });
 
   it("is deterministic", () => {

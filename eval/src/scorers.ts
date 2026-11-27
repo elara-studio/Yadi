@@ -27,8 +27,8 @@ const HEADINGS = [
   "Likely missing:",
 ];
 
-/** Fixed lines that every prompt carries; they are not counted as "filler" by the conciseness check. */
-const FIXED_OVERHEAD_TOKENS = estimateTokens(CLARIFY_LINE);
+/** The fixed clarify line is not counted as "filler" by the conciseness check. */
+const CLARIFY_TOKENS = estimateTokens(CLARIFY_LINE);
 
 /** Very short transcripts get a 1.5x allowance instead of "shorter than the transcript". */
 export const SHORT_TRANSCRIPT_TOKENS = 40;
@@ -36,9 +36,9 @@ export const SHORT_ALLOWANCE = 1.5;
 
 /**
  * Template: the prompt follows the fixed layout.
- *  - the clarify line is always required;
- *  - a request that is only a task may be a plain sentence followed by the clarify line (and an
- *    optional "Likely missing:" line); otherwise a "Task:" line is required;
+ *  - the clarify line appears only when something is likely missing (or in a minimal fallback);
+ *  - a request that is only a task may be a plain sentence, optionally followed by the clarify
+ *    line and a "Likely missing:" line; otherwise a "Task:" line is required;
  *  - every other line starts a known section or is a bullet / attachment line;
  *  - sections appear in the fixed order.
  * Empty sections are omitted by design (D10), and details the task already states are not
@@ -48,14 +48,15 @@ export const SHORT_ALLOWANCE = 1.5;
  */
 export function checkTemplate(_c: EvalCase, prompt: string): boolean {
   const lines = prompt.split("\n").filter((l) => l.trim() !== "");
-  const clarifyAt = lines.indexOf(CLARIFY_LINE);
-  if (clarifyAt === -1) return false;
+  if (lines.length === 0) return false;
   const isHeading = (line: string) =>
     HEADINGS.some((h) => (h.endsWith(":") ? line.startsWith(h) : line === h));
-  if (clarifyAt === 1 && !isHeading(lines[0]!)) {
-    // Plain form: "<task sentence>", the clarify line, then at most the "Likely missing:" line.
-    const rest = lines.slice(2);
-    return rest.length === 0 || (rest.length === 1 && rest[0]!.startsWith("Likely missing:"));
+  if (!isHeading(lines[0]!)) {
+    // Plain form: "<task sentence>", then at most the clarify line and the "Likely missing:" line.
+    const rest = lines.slice(1);
+    if (rest.length === 0) return true;
+    if (rest[0] !== CLARIFY_LINE) return false;
+    return rest.length === 1 || (rest.length === 2 && rest[1]!.startsWith("Likely missing:"));
   }
   if (!lines.some((l) => l.startsWith("Task: "))) return false;
   const order = HEADINGS.map((h) => h.replace(/:$/, ""));
@@ -81,7 +82,8 @@ export function checkTemplate(_c: EvalCase, prompt: string): boolean {
  */
 export function checkConcise(c: EvalCase, prompt: string): boolean {
   const input = estimateTokens(c.transcript);
-  const output = Math.max(0, estimateTokens(prompt) - FIXED_OVERHEAD_TOKENS);
+  const overhead = prompt.split("\n").includes(CLARIFY_LINE) ? CLARIFY_TOKENS : 0;
+  const output = Math.max(0, estimateTokens(prompt) - overhead);
   if (output <= input) return true;
   return input < SHORT_TRANSCRIPT_TOKENS && output <= input * SHORT_ALLOWANCE;
 }
@@ -93,12 +95,13 @@ export function checkRetractions(c: EvalCase, prompt: string): boolean {
 }
 
 /**
- * Clarify behaviour: the clarify line is always there; "Likely missing:" is present when the case
- * expects clarifying questions and absent when it does not (no unnecessary questions).
+ * Clarify behaviour: "Likely missing:" (with the clarify line) is present when the case expects
+ * clarifying questions and absent when it does not (no unnecessary questions).
  */
 export function checkClarify(c: EvalCase, prompt: string): boolean {
-  if (!prompt.split("\n").includes(CLARIFY_LINE)) return false;
-  const hasMissing = prompt.split("\n").some((l) => l.startsWith("Likely missing:"));
+  const lines = prompt.split("\n");
+  const hasMissing = lines.some((l) => l.startsWith("Likely missing:"));
+  if (hasMissing && !lines.includes(CLARIFY_LINE)) return false;
   return c.expect_clarify === true ? hasMissing : !hasMissing;
 }
 

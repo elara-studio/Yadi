@@ -1,7 +1,10 @@
 import type { Attachment, ValidAnalysis } from "./types";
 import { normalizeForMatch } from "./validate";
 
-/** Always the last fixed line: it tells the receiving assistant to ask instead of guessing. */
+/**
+ * Tells the receiving assistant to ask instead of guessing. Only added when something is likely
+ * missing (or the analysis failed and nobody checked); a complete request does not need it.
+ */
 export const CLARIFY_LINE = "If anything is missing or unclear, ask me before answering.";
 
 const oneLine = (s: string): string => s.replace(/\s+/g, " ").trim();
@@ -99,6 +102,8 @@ export function withoutRepeats(task: string, items: readonly string[]): string[]
 export function renderPrompt(
   analysis: ValidAnalysis,
   attachments: readonly Attachment[] = [],
+  /** Adds the clarify line even when nothing is listed as missing (the minimal fallback). */
+  alwaysClarify = false,
 ): string {
   const task = oneLine(analysis.task);
   const context = withoutRepeats(task, analysis.context.map(oneLine));
@@ -122,14 +127,18 @@ export function renderPrompt(
   }
   // Only the task is left: a plain sentence says the same with less.
   if (lines.length === 1) lines[0] = task;
-  lines.push(CLARIFY_LINE);
   if (analysis.missing_info.length > 0) {
-    lines.push(`Likely missing: ${analysis.missing_info.map(oneLine).join("; ")}`);
+    lines.push(CLARIFY_LINE, `Likely missing: ${analysis.missing_info.map(oneLine).join("; ")}`);
+  } else if (alwaysClarify) {
+    lines.push(CLARIFY_LINE);
   }
   return lines.join("\n");
 }
 
-/** The fallback when a model answer could not be used: just the cleaned request as the task. */
+/**
+ * The fallback when a model answer could not be used: just the cleaned request as the task, with
+ * the clarify line, since nothing checked what might be missing.
+ */
 export function renderMinimal(text: string, attachments: readonly Attachment[] = []): string {
   return renderPrompt(
     {
@@ -142,5 +151,6 @@ export function renderMinimal(text: string, attachments: readonly Attachment[] =
       missing_info: [],
     },
     attachments,
+    true,
   );
 }
