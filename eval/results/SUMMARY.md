@@ -146,3 +146,15 @@ One block per run, newest last. Scores are the mean share of the 7 checks passed
 - Latency: p50 22583 ms, p95 26987 ms
 - Degraded prompts: 0 · judge failures: 0
 - Failures: and-01 [concise]; and-03 [concise]; and-04 [concise, clarify]; web-02 [concise, clarify]; web-03 [concise, clarify]; data-01 [concise, clarify]; data-02 [assumptions]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [no_invention, clarify]; wr-03 [clarify]; wr-04 [concise, clarify]; gen-01 [concise, clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise, assumptions]; math-02 [concise, clarify]; corr-01 [retractions, concise, assumptions]; corr-02 [faithful, retractions, concise, clarify]; corr-03 [retractions, concise, assumptions]; filler-02 [no_invention]; ramble-01 [concise]; ramble-02 [no_invention, clarify]; vague-01 [concise, assumptions]; vague-02 [concise, assumptions]; att-01 [concise, clarify, assumptions]; att-02 [no_invention, concise]; tech-01 [concise, clarify]; tech-02 [concise]; tech-03 [concise]; ml-01 [no_invention, concise, clarify]; fmt-01 [concise]; fmt-02 [concise, assumptions]; good-01 [concise]; sens-01 [no_invention, concise]; multi-01 [clarify]; lang-01 [concise, clarify]
+## 2026-11-27 · granite4:3b
+> v0.1.1 prompt changes (no repeated details, plain form for task-only requests, shorter clarify line, retraction rule for changed facts), 44 cases incl. the new corr-04/corr-05, judge qwen3:8b. Compare with the 2026-11-25 granite4:3b block (42 cases): 0.833, template 0.857, concise 0.452, ratio 2.846.
+
+- Judge: `qwen3:8b`
+- Cases: 44
+- **Mean score: 0.847** · hold-out 0.753 · tuning set 0.879
+- Per check: faithful 0.955, no_invention 0.955, retractions 1.000, template 1.000, concise 0.545, clarify 0.477, assumptions 1.000
+- Per category: already-good 1.000 (1), asr-errors 0.857 (4), attachment 0.786 (2), coding-android 0.857 (3), coding-backend 0.857 (1), coding-web 0.857 (2), constraints 0.714 (1), data 0.762 (3), data-ml 0.714 (1), filler-heavy 1.000 (2), format-request 0.929 (2), general 0.829 (5), long-ramble 0.786 (2), math 0.857 (2), multi-task 0.857 (1), self-correction 0.914 (5), sensitive 0.714 (1), vague 0.786 (2), writing 0.857 (2), writing-email 0.857 (2)
+- Mean token ratio (out/in): 2.130 (approximate tokens)
+- Latency: p50 9546 ms, p95 11717 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-01 [concise]; and-03 [concise]; and-04 [concise, clarify]; web-01 [clarify]; web-02 [clarify]; web-03 [clarify]; data-01 [faithful, concise, clarify]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [clarify]; wr-03 [clarify]; wr-04 [concise]; gen-01 [clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise]; math-01 [faithful]; math-02 [clarify]; corr-02 [clarify]; ramble-01 [clarify]; ramble-02 [no_invention, clarify]; vague-01 [clarify]; vague-02 [concise, clarify]; att-01 [concise]; att-02 [concise, clarify]; tech-01 [concise, clarify]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-02 [concise]; sens-01 [no_invention, clarify]; multi-01 [clarify]; lang-01 [concise, clarify]; corr-05 [concise, clarify]
