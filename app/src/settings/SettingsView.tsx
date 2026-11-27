@@ -333,7 +333,10 @@ export function SettingsView({
         <legend>Reset</legend>
         {confirmReset ? (
           <div className="settings-row" role="alertdialog" aria-label="Confirm reset">
-            <span>Reset all settings and delete your words? Downloaded models are kept.</span>
+            <span>
+              Reset all settings and delete your words and your token savings history? Downloaded
+              models are kept.
+            </span>
             <button type="button" onClick={() => void resetEverything()}>
               Yes, reset everything
             </button>

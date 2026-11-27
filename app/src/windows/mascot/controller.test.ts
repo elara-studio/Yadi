@@ -32,6 +32,7 @@ function setup(initial?: ConstructorParameters<typeof Controller>[1]) {
     broadcastResult: vi.fn(),
     broadcastError: vi.fn(),
     clearAttachments: vi.fn(),
+    recordSavings: vi.fn(),
     stopAudio: vi.fn(),
     clearAudio: vi.fn(),
     broadcast: vi.fn((p) => void calls.push(`broadcast:${p.state}:${p.editing}`)),
@@ -754,6 +755,27 @@ describe("prompt pipeline in the processing flow", () => {
       tokensSaved:
         Math.ceil(TRANSCRIPT.length / 4) - Math.ceil("Task: Write a short email.".length / 4),
     });
+  });
+
+  it("adds each prompt's token counts (numbers only) to the savings history", async () => {
+    const { controller, ports } = session();
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: Write a short email."));
+    await process(controller);
+    expect(ports.recordSavings).toHaveBeenCalledTimes(1);
+    expect(ports.recordSavings).toHaveBeenCalledWith(
+      Math.ceil(TRANSCRIPT.length / 4),
+      Math.ceil("Task: Write a short email.".length / 4),
+    );
+  });
+
+  it("a savings history that cannot be saved does not stop the result", async () => {
+    const { controller, ports } = session();
+    (ports.recordSavings as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("disk full"));
+    pipeline(ports).mockResolvedValue(pipelineResult("Task: ok"));
+    await process(controller);
+    expect(controller.model.state).toBe("result");
+    expect(lastResult(ports)?.prompt).toBe("Task: ok");
+    expect(ports.log).toHaveBeenCalledWith("savings history not saved: disk full");
   });
 
   it("a prompt longer than the message saves nothing", async () => {

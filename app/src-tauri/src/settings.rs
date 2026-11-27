@@ -212,7 +212,8 @@ pub fn reset_everything(app: AppHandle, state: State<SettingsState>) -> Result<S
     *state.0.lock().expect("settings lock") = settings.clone();
     announce(&app, &settings);
     crate::vocabulary::clear(&app)?;
-    log::info!("settings and vocabulary were reset");
+    crate::savings::clear(&app)?;
+    log::info!("settings, vocabulary and token savings were reset");
     Ok(settings)
 }
 

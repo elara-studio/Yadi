@@ -6,6 +6,7 @@ mod hotkey;
 mod listener;
 mod models;
 mod ollama;
+mod savings;
 mod settings;
 mod setup;
 mod stt;
@@ -75,6 +76,8 @@ pub fn run() {
             vocabulary::add_vocabulary,
             vocabulary::vocabulary_import,
             vocabulary::vocabulary_export,
+            savings::savings_record,
+            savings::get_savings,
             audio::mic::audio_list_devices,
             tiers::llm_options_list,
             audio::commands::audio_start,

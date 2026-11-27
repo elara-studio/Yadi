@@ -132,6 +132,11 @@ export interface ControllerPorts {
   broadcastError(error: ProcessErrorPayload | null): void | Promise<void>;
   /** Tells the chat window to forget its attachments (`app:attachments-clear`): a new session. */
   clearAttachments(): void | Promise<void>;
+  /**
+   * Adds a finished prompt's approximate token counts to the local savings history
+   * (`savings.json`). Numbers only: never the transcript or the prompt.
+   */
+  recordSavings(tokensIn: number, tokensOut: number): void | Promise<void>;
   /** Diagnostics only. Never pass transcripts, audio or prompts here. */
   log(message: string): void;
 }
@@ -501,9 +506,19 @@ export class Controller {
       tokensSaved: tokensSaved(tokensIn, tokensOut),
       recent: this.recent,
     };
+    void this.recordSavings(tokensIn, tokensOut);
     void this.ports.broadcastResult(this.lastResult);
     void this.ports.broadcastProgress(null);
     this.dispatch({ type: "PROCESS_DONE" });
+  }
+
+  /** A history that cannot be saved must never get in the way of the prompt. */
+  private async recordSavings(tokensIn: number, tokensOut: number): Promise<void> {
+    try {
+      await this.ports.recordSavings(tokensIn, tokensOut);
+    } catch (e) {
+      this.ports.log(`savings history not saved: ${errorMessage(e)}`);
+    }
   }
 
   /** Forgets the last result and error (a new recording or session starts). */

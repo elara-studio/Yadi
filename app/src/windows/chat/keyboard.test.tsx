@@ -130,6 +130,7 @@ describe("keyboard -> Controller integration", () => {
       broadcastResult: () => {},
       broadcastError: () => {},
       clearAttachments: () => {},
+      recordSavings: () => {},
       stopAudio: () => {},
       clearAudio: () => {},
       log: (m) => void calls.push(m),

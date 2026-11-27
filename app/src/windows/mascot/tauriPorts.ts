@@ -48,5 +48,8 @@ export const tauriPorts: ControllerPorts = {
   broadcastResult: (result) => emit("app:result", result),
   broadcastError: (error) => emit("app:error", error),
   clearAttachments: () => emit("app:attachments-clear"),
+  recordSavings: async (tokensIn, tokensOut) => {
+    await invoke("savings_record", { tokensIn, tokensOut });
+  },
   log: (message) => console.info(`[controller] ${message}`),
 };
