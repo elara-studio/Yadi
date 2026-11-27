@@ -4,7 +4,6 @@
 
 <p align="center">
   <a href="#-meet-yadi">Meet Yadi</a> ·
-  <a href="#-fewer-tokens-same-meaning">Saves tokens</a> ·
   <a href="#-early-days-an-honest-status">Status</a> ·
   <a href="#-why-its-safe-to-use">Privacy</a> ·
   <a href="#-try-it">Try it</a> ·
@@ -19,28 +18,17 @@ Hold **Y**, say what you need the way it comes out (ums, restarts, "no wait" and
 hands you back a clean, structured prompt to paste into any AI assistant. Speech recognition and
 the language model both run **on your own computer**, so after a one-time setup Yadi works offline.
 
-## 🪙 Fewer tokens, same meaning
-
-Talking is wordy. Paste a raw transcript into an AI assistant and you pay for every "um", every
-restart and every idea you took back. Yadi sends only what matters: the filler and the retracted
-words are gone, nothing is said twice, and a simple request stays one plain sentence.
-
-The more you ramble, the more you save. When the prompt comes out shorter than what you said,
-Yadi throws a little confetti and tells you roughly how many tokens you saved. The estimate stays
-on screen under your words and under the prompt. Counts are approximate (about 4 characters per
-token). A very short request can come out a little longer, because the prompt adds structure and
-one line asking the assistant to check with you instead of guessing. Yadi only celebrates real
-savings.
-
 ## ✨ From blabbing to a real prompt
 
 <p align="center">
   <img src=".github/readme/blab-to-prompt.svg" alt="A rambling transcript (okay so um, I need to email my landlord, the heater's been broken since Monday, no wait, Sunday...) becomes a prompt with a Task, Context and Constraints." width="100%">
 </p>
 
-Yadi drops the filler and the words you took back. A change stays only when it is the point
-("tell the team the demo moved to Friday"). Then it sorts what you said into **Task**,
-**Context**, **Constraints** and **Output**, without repeating anything the task already says.
+Yadi drops the filler, keeps only the final version of what you corrected and sorts what you said
+into **Task**, **Context**, **Constraints** and **Output**. Only the parts you need show up: a
+simple request stays one plain sentence, and Yadi asks the assistant to check with you only when
+something seems to be missing. Under each text you'll see a rough token count, and a little
+confetti when the prompt came out shorter than what you said.
 
 The model never runs your prompt. It only picks out what you said, and every detail needs a
 quote from you as evidence. Plain code then lays the prompt out. That way Yadi can't invent

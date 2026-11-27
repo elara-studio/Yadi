@@ -41,6 +41,4 @@ text { font-family: 'Outfit', -apple-system, 'Segoe UI', sans-serif; }
 <text x="728" y="332" font-size="19" font-weight="400" fill="#2b2220" xml:space="preserve"><tspan font-weight="600" fill="#f15f36">Constraints:</tspan></text>
 <text x="728" y="360" font-size="19" font-weight="400" fill="#2b2220" xml:space="preserve">- Polite but firm tone</text>
 <text x="728" y="388" font-size="19" font-weight="400" fill="#2b2220" xml:space="preserve">- Keep it short</text>
-<text x="728" y="428" font-size="19" font-weight="400" fill="#c4aea4" xml:space="preserve">If anything is missing or unclear, ask me</text>
-<text x="728" y="452" font-size="19" font-weight="400" fill="#c4aea4" xml:space="preserve">before answering.</text>
 </svg>

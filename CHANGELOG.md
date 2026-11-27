@@ -23,14 +23,14 @@ What changed in each version of Yadi, newest first. Downloads are on the
   sentence instead of a one-line template.
 - **Smarter corrections.** "Thursday, actually it moved to Friday" now keeps only Friday, unless
   the change itself is the point ("tell the team the demo moved from Thursday to Friday").
-- **A shorter closing line:** "If anything is missing or unclear, ask me before answering."
+- **"Ask me" only when needed.** The line asking the assistant to check with you now appears
+  only when something seems to be missing, next to what that is. It is also shorter: "If anything
+  is missing or unclear, ask me before answering."
 
 ### Measured
 
-On the eval set (granite4:3b, judged by qwen3:8b), prompts are about a quarter shorter than in
-0.1.0 relative to what was said. The overall score went from 0.833 to 0.847, and every prompt
-followed the layout (1.000, was 0.857). Short requests can still come out longer than what was
-said, because the prompt adds structure and the closing line. Details are in
+On the eval set (granite4:3b, judged by qwen3:8b, before the "ask me" change) the overall score
+went from 0.833 to 0.847, and every prompt followed the layout (1.000, was 0.857). Details are in
 [`eval/results/SUMMARY.md`](eval/results/SUMMARY.md).
 
 ## 0.1.0 · 2026-11-26
