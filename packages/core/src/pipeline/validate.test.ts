@@ -230,3 +230,34 @@ describe("a task cannot be taken from an attachment", () => {
     expect(wordsBorrowedFromAttachments("anything", ["x"], [])).toEqual([]);
   });
 });
+
+describe("validateAnalysis: the model's own labels", () => {
+  it("removes items labelled as turned down or as repeating the task, without counting them as unbacked", () => {
+    const { analysis, dropped } = validateAnalysis(
+      base({
+        context: [
+          { text: "The list is filtered", evidence: "filter a list", repeats_task: true },
+          { text: "Uses TypeScript", evidence: "I use TypeScript", turned_down: true },
+          { text: "The list has 5000 items", evidence: "list of 5000 items" },
+        ],
+        output_format: { text: "Short answer", evidence: "short answer", repeats_task: true },
+      }),
+      SOURCES,
+    );
+    expect(analysis.context).toEqual(["The list has 5000 items"]);
+    expect(analysis.output_format).toBeNull();
+    expect(dropped.count).toBe(0);
+  });
+
+  it("keeps an item labelled as a repeat when it has a number the task does not", () => {
+    const { analysis } = validateAnalysis(
+      base({
+        context: [
+          { text: "The list has 5000 items", evidence: "list of 5000 items", repeats_task: true },
+        ],
+      }),
+      SOURCES,
+    );
+    expect(analysis.context).toEqual(["The list has 5000 items"]);
+  });
+});

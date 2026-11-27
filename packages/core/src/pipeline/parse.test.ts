@@ -43,6 +43,24 @@ describe("parseAnalysis", () => {
     expect(parseAnalysis(JSON.stringify(ok))).toEqual(ok);
   });
 
+  it("keeps the repeats_task and turned_down labels only when they are true", () => {
+    const a = parseAnalysis(
+      JSON.stringify({
+        task: "Plan a trip",
+        context: [
+          { evidence: "Lisbon", text: "Lisbon", repeats_task: false, turned_down: true },
+          { evidence: "Porto", text: "Porto", repeats_task: "yes", turned_down: false },
+        ],
+        output_format: { evidence: "a plan", text: "A plan", repeats_task: true },
+      }),
+    );
+    expect(a.context).toEqual([
+      { text: "Lisbon", evidence: "Lisbon", turned_down: true },
+      { text: "Porto", evidence: "Porto" },
+    ]);
+    expect(a.output_format).toEqual({ text: "A plan", evidence: "a plan", repeats_task: true });
+  });
+
   it("needs a task", () => {
     expect(() => parseAnalysis(JSON.stringify({ ...ok, task: "  " }))).toThrow(ParseError);
     expect(() => parseAnalysis("{}")).toThrow(ParseError);

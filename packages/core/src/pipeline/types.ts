@@ -45,6 +45,10 @@ export interface Attachment {
 export interface EvidencedText {
   text: string;
   evidence: string;
+  /** The model's own label: the task sentence already says this. The validator removes it. */
+  repeats_task?: boolean;
+  /** The model's own label: the person turned this down or replaced it. The validator removes it. */
+  turned_down?: boolean;
 }
 
 /** What Stage 2 (Analyze) returns, before validation. */

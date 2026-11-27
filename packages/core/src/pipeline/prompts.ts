@@ -1,4 +1,4 @@
-import type { Attachment, ChatMessage } from "./types";
+import type { Analysis, Attachment, ChatMessage, EvidencedText } from "./types";
 import { FEWSHOT_EXAMPLES } from "./fewshot";
 
 /** At most this many characters of an attachment are shown to the model (to infer the domain). */
@@ -17,14 +17,28 @@ export const NORMALIZE_SCHEMA = {
 
 const evidenced = {
   type: "object",
+  // The quote comes first: once it is written down, the model writes a short note instead of
+  // copying the whole sentence into `text`. Then it labels the note; code removes labelled notes
+  // (small models label far more reliably than they leave things out).
   properties: {
-    text: { type: "string" },
     evidence: {
       type: "string",
       description: "An exact quote from the cleaned request that supports this item.",
     },
+    text: {
+      type: "string",
+      description: "A short note in plain words (under 10 words), not a copy of the sentence.",
+    },
+    repeats_task: {
+      type: "boolean",
+      description: "true when the task sentence already says this, even in other words.",
+    },
+    turned_down: {
+      type: "boolean",
+      description: "true when the person turned this option down or replaced it.",
+    },
   },
-  required: ["text", "evidence"],
+  required: ["evidence", "text", "repeats_task", "turned_down"],
   additionalProperties: false,
 } as const;
 
@@ -134,12 +148,21 @@ const ANALYZE_SYSTEM = [
   "",
   "Fields:",
   "- task_type: coding, debugging, writing, editing, explanation, analysis, planning, math, data, question or other.",
-  "- task: one short imperative sentence with the action the person wants done, in their own terms.",
+  '- task: one imperative sentence (under 25 words): the action, what it is about, and the form and tone of the answer when the person said them ("a short, friendly English email"). Numbers, dates, times, budgets and diets go in constraints.',
   "- role: the expert the assistant should act as, ONLY if the person said it or it is plainly implied by what they are doing. Otherwise null.",
-  "- context: ALWAYS list the concrete details the person mentioned, one short item (under 12 words) each: the language, framework, platform or tool, what the thing must do, who or what it is for, the symptom, what they already tried. Details may also appear in the task sentence; list them here anyway. An empty list only when the person gave no detail at all.",
-  "- constraints: requirements and limits the person stated (length, tone, language, tools, deadlines...).",
-  "- output_format: the form of answer the person asked for, or null.",
-  "- missing_info: up to 3 short questions, ONLY about details the assistant cannot do without and the person did not give (for example the table names for a SQL query, or what a vague request is about). When the request names what to build or explain and the tools involved, return an empty list []. Never ask about preferences, styling, edge cases or anything the assistant can decide itself. When in doubt, return [].",
+  "- context: the background facts the task does not already say, one item each: the language, framework, platform or tool, who or what it is for, the situation, the symptom, what they already tried.",
+  "- constraints: the limits and wishes the task does not already say: budget, dates and times, length, tone, language, diet, likes and dislikes, what to avoid, tools, deadlines.",
+  "- output_format: the form of answer the person asked for (a Slack message, a table, a day-by-day plan), only when the task does not already say it. Otherwise null.",
+  "- missing_info: up to 3 short questions, ONLY about details the assistant cannot do without and the person did not give (for example the table names for a SQL query, or what a vague request is about). When the request names what to build or explain and the tools involved, return an empty list []. Never ask about preferences, style, size, colour, edge cases or anything the assistant can decide itself. When in doubt, return [].",
+  "",
+  "How to write each item:",
+  '- First copy the exact quote into "evidence". Then write "text": a short note in plain words (under 10 words), NOT a copy of the quote: no "I", "we" or "my", no filler like "like", "so", "and", "you know". For example the quote "so my brother can\'t eat gluten and I can, but like we want to cook one dinner" becomes the text "One shared dinner, one person gluten-free".',
+  '- Keep every name, number, day and place in the note, and both sides of a change ("moved from Tuesday to Thursday").',
+  '- Then label the note. repeats_task: true when the task sentence already says it, even in other words (task "Write a short English email" -> "Keep it short", "In English" and "An email" are all repeats_task: true). turned_down: true when the person turned the option down or replaced it ("blue or green, let\'s go with green" -> "Blue" is turned_down: true). The program removes labelled notes, so label them instead of leaving them out.',
+  '- Never the same detail in context and constraints. Two items that mean the same ("not panicky" and "calm tone") become one.',
+  '- Never write notes that only restate the request ("The user wants a name", "The task is to write a query").',
+  '- Leave out remarks that add nothing ("it\'s fine", "figure it out"), and words the speech recognizer garbled into nonsense.',
+  "- A simple request is often just the task: then context and constraints are empty lists [].",
   "",
   "Hard rules:",
   '- Every item has "evidence": an exact quote copied from the cleaned request. No quote, no item.',
@@ -170,9 +193,25 @@ export function analyzeUserMessage(cleanText: string, attachments: readonly Atta
     }
   }
   parts.push(
-    "Reminder: list each concrete detail the person gave as its own context item with an exact quote as evidence, and return missing_info [] unless something essential is absent.",
+    "Reminder: each detail once, as a short note with an exact quote as evidence (background in context, limits and wishes in constraints), labelled repeats_task or turned_down when that is true, and missing_info [] unless something essential is absent.",
   );
   return parts.join("\n");
+}
+
+/** The analysis with each item's `evidence` before its `text`, the order the schema asks for. */
+function quoteFirst(a: Analysis): Analysis {
+  const item = (x: EvidencedText): EvidencedText => ({
+    evidence: x.evidence,
+    text: x.text,
+    repeats_task: x.repeats_task === true,
+    turned_down: x.turned_down === true,
+  });
+  return {
+    ...a,
+    context: a.context.map(item),
+    constraints: a.constraints.map(item),
+    output_format: a.output_format && item(a.output_format),
+  };
 }
 
 /** System prompt, then the few-shot examples as user/assistant turns, then the real request. */
@@ -186,7 +225,7 @@ export function analyzeMessages(
       role: "user",
       content: analyzeUserMessage(ex.cleanText, ex.attachments ?? []),
     });
-    messages.push({ role: "assistant", content: JSON.stringify(ex.analysis) });
+    messages.push({ role: "assistant", content: JSON.stringify(quoteFirst(ex.analysis)) });
   }
   messages.push({ role: "user", content: analyzeUserMessage(cleanText, attachments) });
   return messages;

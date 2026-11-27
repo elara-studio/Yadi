@@ -11,6 +11,13 @@ What changed in each version of Yadi, newest first. Downloads are on the
   items and moves Yadi to the Trash, optionally with your settings and downloaded models. Before,
   Finder refused to delete Yadi because the helper was still running.
 
+### Improved
+
+- **Shorter, cleaner prompts.** Each detail is now a short note instead of your whole sentence,
+  and it appears once: details the task already says and options you turned down are left out. A
+  simple request ("a name for a white and brown dog") comes back as one plain sentence. Long
+  rambles come out about a quarter shorter than before.
+
 ### Fixed
 
 - **Hold-Y now reopens Yadi after you quit it (macOS).** The helper that listens while Yadi is

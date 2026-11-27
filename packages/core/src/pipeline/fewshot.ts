@@ -40,13 +40,23 @@ export const FEWSHOT_EXAMPLES: FewShot[] = [
       task_type: "writing",
       task: "Write a short announcement for the new dark mode feature.",
       role: null,
-      context: [{ text: "The new feature is dark mode", evidence: "our new feature, dark mode" }],
+      context: [
+        {
+          text: "The new feature is dark mode",
+          evidence: "our new feature, dark mode",
+          repeats_task: true,
+        },
+      ],
       constraints: [
         { text: "Under 80 words", evidence: "under 80 words" },
         { text: "Friendly tone", evidence: "friendly tone" },
         { text: "End with a link to the changelog", evidence: "end with a link to the changelog" },
       ],
-      output_format: { text: "A short announcement", evidence: "short announcement" },
+      output_format: {
+        text: "A short announcement",
+        evidence: "short announcement",
+        repeats_task: true,
+      },
       missing_info: ["What is the link to the changelog?"],
     },
   },
@@ -68,38 +78,20 @@ export const FEWSHOT_EXAMPLES: FewShot[] = [
   },
   {
     cleanText:
-      "I have a Postgres table with 12 million rows and this query takes 40 seconds. It joins orders and customers on customer id and filters by date. How can I make it faster?",
-    analysis: {
-      task_type: "data",
-      task: "Suggest how to make the slow Postgres query faster.",
-      role: { value: "PostgreSQL performance expert", evidence: "I have a Postgres table" },
-      context: [
-        { text: "The table has 12 million rows", evidence: "table with 12 million rows" },
-        { text: "The query takes 40 seconds", evidence: "takes 40 seconds" },
-        {
-          text: "The query joins orders and customers on customer id and filters by date",
-          evidence: "joins orders and customers on customer id and filters by date",
-        },
-      ],
-      constraints: [],
-      output_format: null,
-      missing_info: ["Which indexes exist on these tables?"],
-    },
-  },
-  {
-    cleanText:
       "Summarise the attached meeting notes for my manager in five bullet points, plain language.",
     attachments: [{ name: "meeting-notes.docx", type: "docx" }],
     analysis: {
       task_type: "writing",
       task: "Summarise the attached meeting notes for the manager.",
       role: null,
-      context: [{ text: "The summary is for the manager", evidence: "for my manager" }],
+      context: [
+        { text: "The summary is for the manager", evidence: "for my manager", repeats_task: true },
+      ],
       constraints: [
         { text: "Exactly five bullet points", evidence: "in five bullet points" },
         { text: "Plain language", evidence: "plain language" },
       ],
-      output_format: { text: "Five bullet points", evidence: "five bullet points" },
+      output_format: null,
       missing_info: [],
     },
   },
@@ -126,9 +118,12 @@ export const FEWSHOT_EXAMPLES: FewShot[] = [
       task: "Explain how to show a loading spinner on a Flutter button during an API call.",
       role: { value: "Flutter developer", evidence: "Flutter button" },
       context: [
-        { text: "It is a Flutter app", evidence: "Flutter button" },
-        { text: "The button should show a loading spinner", evidence: "show a loading spinner" },
-        { text: "An API call is running", evidence: "while an API call runs" },
+        { text: "It is a Flutter app", evidence: "Flutter button", repeats_task: true },
+        {
+          text: "The button shows a loading spinner",
+          evidence: "show a loading spinner",
+          repeats_task: true,
+        },
       ],
       constraints: [],
       output_format: null,
@@ -137,19 +132,52 @@ export const FEWSHOT_EXAMPLES: FewShot[] = [
   },
   {
     cleanText:
-      "Create a Bash script that backs up my home folder to an external drive every night.",
+      "My partner and I want to repaint the living room. We thought about blue or green and picked green, blue is too dark. We can spend about 150 euros on paint and tools, and we only have Saturday. The room gets little sunlight and we have a cat, so no strong smells. Give me a shopping list and a step-by-step plan.",
     analysis: {
-      task_type: "coding",
-      task: "Write a Bash script that backs up the home folder to an external drive every night.",
+      task_type: "planning",
+      task: "Plan repainting the living room.",
       role: null,
       context: [
-        { text: "The script is written in Bash", evidence: "Bash script" },
-        { text: "The folder to back up is the home folder", evidence: "my home folder" },
-        { text: "The backup goes to an external drive", evidence: "to an external drive" },
-        { text: "It runs every night", evidence: "every night" },
+        { text: "Two people painting the living room", evidence: "My partner and I" },
+        { text: "The room gets little sunlight", evidence: "The room gets little sunlight" },
+        { text: "A cat lives there", evidence: "we have a cat" },
       ],
-      constraints: [],
-      output_format: null,
+      constraints: [
+        { text: "Blue paint", evidence: "We thought about blue", turned_down: true },
+        { text: "Green paint", evidence: "picked green" },
+        {
+          text: "About 150 euros for paint and tools",
+          evidence: "about 150 euros on paint and tools",
+        },
+        { text: "Done on Saturday only", evidence: "we only have Saturday" },
+        { text: "No strong-smelling products", evidence: "no strong smells" },
+      ],
+      output_format: {
+        text: "A shopping list and a step-by-step plan",
+        evidence: "a shopping list and a step-by-step plan",
+      },
+      missing_info: [],
+    },
+  },
+  {
+    cleanText:
+      "Write a message to my football club group. Tuesday training moves from 6 to 7 pm because the field is booked. Keep it short and cheerful, they don't need the details. In French. It's a WhatsApp message.",
+    analysis: {
+      task_type: "writing",
+      task: "Write a message to the football club group about the training time.",
+      role: null,
+      context: [
+        {
+          text: "Tuesday training moves from 6 to 7 pm",
+          evidence: "Tuesday training moves from 6 to 7 pm",
+        },
+        { text: "Reason: the field is booked", evidence: "because the field is booked" },
+      ],
+      constraints: [
+        { text: "Short and cheerful", evidence: "short and cheerful" },
+        { text: "In French", evidence: "In French" },
+      ],
+      output_format: { text: "A WhatsApp message", evidence: "a WhatsApp message" },
       missing_info: [],
     },
   },

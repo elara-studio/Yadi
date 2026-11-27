@@ -45,8 +45,18 @@ function evidencedList(v: unknown): EvidencedText[] {
       item !== null &&
       typeof (item as { text?: unknown }).text === "string"
     ) {
-      const { text, evidence } = item as { text: string; evidence?: unknown };
-      out.push({ text, evidence: str(evidence) });
+      const { text, evidence, repeats_task, turned_down } = item as {
+        text: string;
+        evidence?: unknown;
+        repeats_task?: unknown;
+        turned_down?: unknown;
+      };
+      out.push({
+        text,
+        evidence: str(evidence),
+        ...(repeats_task === true && { repeats_task: true }),
+        ...(turned_down === true && { turned_down: true }),
+      });
     }
   }
   return out;
@@ -73,9 +83,13 @@ export function parseAnalysis(raw: string): Analysis {
 
   let outputFormat: Analysis["output_format"] = null;
   if (typeof v.output_format === "object" && v.output_format !== null) {
-    const o = v.output_format as { text?: unknown; evidence?: unknown };
+    const o = v.output_format as { text?: unknown; evidence?: unknown; repeats_task?: unknown };
     if (str(o.text).trim() !== "")
-      outputFormat = { text: str(o.text).trim(), evidence: str(o.evidence) };
+      outputFormat = {
+        text: str(o.text).trim(),
+        evidence: str(o.evidence),
+        ...(o.repeats_task === true && { repeats_task: true }),
+      };
   } else if (typeof v.output_format === "string" && v.output_format.trim() !== "") {
     outputFormat = { text: v.output_format.trim(), evidence: "" };
   }

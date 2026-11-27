@@ -1,4 +1,4 @@
-import type { Analysis, DroppedItem, DroppedReport, ValidAnalysis } from "./types";
+import type { Analysis, DroppedItem, DroppedReport, EvidencedText, ValidAnalysis } from "./types";
 
 /**
  * The proof rule (decision D11). Every detail the model claims must carry evidence that is an exact
@@ -98,12 +98,22 @@ export function validateAnalysis(analysis: Analysis, sources: Sources): Validate
     return true;
   }
 
+  /**
+   * The model labels items it would otherwise have to leave out (small models are better at
+   * labelling than at omitting). A "repeats the task" label is only trusted when the item brings no
+   * number of its own, so a wrong label can never cost a budget or a date.
+   */
+  // Called only after the task below is settled.
+  const labelledAway = (item: EvidencedText): boolean =>
+    item.turned_down === true ||
+    (item.repeats_task === true && numbersIn(item.text).every((n) => numbersIn(task).includes(n)));
+
   function evidencedItems(field: "context" | "constraints", items: Analysis["context"]): string[] {
     const seen = new Set<string>();
     const out: string[] = [];
     for (const item of items) {
       const text = item.text.replace(/\s+/g, " ").trim();
-      if (text === "" || !check(field, text, item.evidence)) continue;
+      if (text === "" || labelledAway(item) || !check(field, text, item.evidence)) continue;
       const key = text.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -146,7 +156,11 @@ export function validateAnalysis(analysis: Analysis, sources: Sources): Validate
   let outputFormat: string | null = null;
   if (analysis.output_format) {
     const text = analysis.output_format.text.replace(/\s+/g, " ").trim();
-    if (text !== "" && check("output_format", text, analysis.output_format.evidence))
+    if (
+      text !== "" &&
+      !labelledAway(analysis.output_format) &&
+      check("output_format", text, analysis.output_format.evidence)
+    )
       outputFormat = text;
   }
 
