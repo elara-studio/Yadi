@@ -44,10 +44,16 @@ describe("deterministic checks", () => {
       );
       expect(checkTemplate(and01, lines("Task: x", "Context:", "- a"))).toBe(false);
     });
-    it("a case with 3+ facts needs a Context section; a smaller one does not", () => {
-      const minimal = lines("Task: Fix the lag.", CLARIFY_LINE);
-      expect(checkTemplate(and01, minimal)).toBe(false);
-      expect(checkTemplate({ ...and01, must_include: ["a", "b"] }, minimal)).toBe(true);
+    it("accepts a plain task sentence when nothing else is left", () => {
+      expect(checkTemplate(and01, lines("Fix the lag.", CLARIFY_LINE))).toBe(true);
+      expect(checkTemplate(and01, lines("Fix the lag.", CLARIFY_LINE, "Likely missing: q?"))).toBe(
+        true,
+      );
+      expect(checkTemplate(and01, lines("Task: Fix the lag.", CLARIFY_LINE))).toBe(true);
+    });
+    it("a plain sentence may not carry other lines", () => {
+      expect(checkTemplate(and01, lines("Fix the lag.", CLARIFY_LINE, "- a"))).toBe(false);
+      expect(checkTemplate(and01, lines("Fix the lag.", "More prose.", CLARIFY_LINE))).toBe(false);
     });
     it("a Role line is never required", () => {
       expect(checkTemplate(and01, GOOD.replace("Role: Android developer\n", ""))).toBe(true);

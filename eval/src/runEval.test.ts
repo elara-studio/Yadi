@@ -112,7 +112,7 @@ describe("runEval", () => {
       })
     )[0]!;
     expect(r.degraded).toBe(true);
-    expect(r.prompt).toContain("Task: ");
+    expect(r.prompt).toContain(CLARIFY_LINE);
   });
 
   it("attachment cases pass attachment metadata to the pipeline, and the prompt lists it", async () => {

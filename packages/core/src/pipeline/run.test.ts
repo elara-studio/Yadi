@@ -34,7 +34,7 @@ const GOLDEN = [
   "- Uses TypeScript",
   "Constraints:",
   "- A short answer",
-  "Output: Short answer",
+  // "Output: Short answer" is left out: the constraint "A short answer" already says it.
   CLARIFY_LINE,
   "Likely missing: Which React version?",
 ].join("\n");
@@ -191,7 +191,7 @@ describe("runPipeline", () => {
       const result = await run(llm, { onStage: (s) => stages.push(s) });
       expect(result.degraded).toBe(true);
       expect(result.analysis).toBeNull();
-      expect(result.prompt).toBe(`Task: ${result.stage0_text}\n${CLARIFY_LINE}`);
+      expect(result.prompt).toBe(`${result.stage0_text}\n${CLARIFY_LINE}`);
       expect(result.prompt).not.toContain("Role:");
       expect(llm.requests).toHaveLength(2);
       expect(stages).toEqual(["render"]);
@@ -202,7 +202,7 @@ describe("runPipeline", () => {
       const llm = new FakeLlmClient([normalizeReply, "{broken", '{"task": ""}']);
       const result = await run(llm);
       expect(result.degraded).toBe(true);
-      expect(result.prompt).toBe(`Task: ${CLEAN}\n${CLARIFY_LINE}`);
+      expect(result.prompt).toBe(`${CLEAN}\n${CLARIFY_LINE}`);
       expect(result.clean_text).toBe(CLEAN);
       expect(llm.requests).toHaveLength(3); // cleanup, analysis, analysis retry
     });

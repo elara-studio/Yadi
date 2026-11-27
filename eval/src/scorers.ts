@@ -36,17 +36,28 @@ export const SHORT_ALLOWANCE = 1.5;
 
 /**
  * Template: the prompt follows the fixed layout.
- *  - a "Task:" line and the clarify line are always required (empty sections are omitted by design, D10);
+ *  - the clarify line is always required;
+ *  - a request that is only a task may be a plain sentence followed by the clarify line (and an
+ *    optional "Likely missing:" line); otherwise a "Task:" line is required;
  *  - every other line starts a known section or is a bullet / attachment line;
- *  - sections appear in the fixed order;
- *  - a case with three or more facts to keep (`must_include`) must have a "Context:" section.
+ *  - sections appear in the fixed order.
+ * Empty sections are omitted by design (D10), and details the task already states are not
+ * repeated in Context, so no section other than the task is ever required.
  * A "Role:" line is never required: many eval roles ("general assistant") cannot be proven from
  * what was said, and inventing one would break the proof rule.
  */
-export function checkTemplate(c: EvalCase, prompt: string): boolean {
+export function checkTemplate(_c: EvalCase, prompt: string): boolean {
   const lines = prompt.split("\n").filter((l) => l.trim() !== "");
+  const clarifyAt = lines.indexOf(CLARIFY_LINE);
+  if (clarifyAt === -1) return false;
+  const isHeading = (line: string) =>
+    HEADINGS.some((h) => (h.endsWith(":") ? line.startsWith(h) : line === h));
+  if (clarifyAt === 1 && !isHeading(lines[0]!)) {
+    // Plain form: "<task sentence>", the clarify line, then at most the "Likely missing:" line.
+    const rest = lines.slice(2);
+    return rest.length === 0 || (rest.length === 1 && rest[0]!.startsWith("Likely missing:"));
+  }
   if (!lines.some((l) => l.startsWith("Task: "))) return false;
-  if (!lines.includes(CLARIFY_LINE)) return false;
   const order = HEADINGS.map((h) => h.replace(/:$/, ""));
   let lastIndex = -1;
   let inList = false;
@@ -61,7 +72,6 @@ export function checkTemplate(c: EvalCase, prompt: string): boolean {
       return false; // a stray line the template does not produce
     }
   }
-  if (c.must_include.length >= 3 && !lines.includes("Context:")) return false;
   return true;
 }
 

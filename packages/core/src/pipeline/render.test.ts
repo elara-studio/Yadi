@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLARIFY_LINE, renderMinimal, renderPrompt } from "./render";
+import { CLARIFY_LINE, renderMinimal, renderPrompt, withoutRepeats } from "./render";
 import type { ValidAnalysis } from "./types";
 
 const full: ValidAnalysis = {
@@ -8,7 +8,7 @@ const full: ValidAnalysis = {
   role: "React developer",
   context: ["The list has 5000 items", "Uses TypeScript"],
   constraints: ["A short answer"],
-  output_format: "Short answer",
+  output_format: "A numbered list",
   missing_info: ["Which React version?", "Is the list virtualised?"],
 };
 
@@ -23,16 +23,23 @@ describe("renderPrompt (golden outputs)", () => {
         "- Uses TypeScript",
         "Constraints:",
         "- A short answer",
-        "Output: Short answer",
+        "Output: A numbered list",
         "Attachments:",
         "- [Attached: profile.json (json)]",
-        "If anything is missing or ambiguous, ask me concise clarifying questions before answering.",
+        "If anything is missing or unclear, ask me before answering.",
         "Likely missing: Which React version?; Is the list virtualised?",
       ].join("\n"),
     );
   });
 
   it("omits empty sections and the role line when there is no role", () => {
+    const text = renderPrompt({ ...full, role: null, output_format: null, missing_info: [] });
+    expect(text).not.toContain("Role:");
+    expect(text).not.toContain("Output:");
+    expect(text.startsWith("Task: Speed up the filtered list.\nContext:")).toBe(true);
+  });
+
+  it("writes a request that is only a task as a plain sentence", () => {
     const text = renderPrompt({
       ...full,
       role: null,
@@ -41,7 +48,22 @@ describe("renderPrompt (golden outputs)", () => {
       output_format: null,
       missing_info: [],
     });
-    expect(text).toBe(["Task: Speed up the filtered list.", CLARIFY_LINE].join("\n"));
+    expect(text).toBe(["Speed up the filtered list.", CLARIFY_LINE].join("\n"));
+  });
+
+  it("does not repeat in Context what the task already says", () => {
+    const text = renderPrompt({
+      task_type: "writing",
+      task: "Write an email for a CV to send to the recruiter.",
+      role: null,
+      context: ["help me write an email for my CV", "send it to our recruiter"],
+      constraints: [],
+      output_format: "An email",
+      missing_info: [],
+    });
+    expect(text).toBe(
+      ["Write an email for a CV to send to the recruiter.", CLARIFY_LINE].join("\n"),
+    );
   });
 
   it("empty missing_info omits the 'Likely missing' line", () => {
@@ -87,12 +109,54 @@ describe("renderPrompt (golden outputs)", () => {
 describe("renderMinimal", () => {
   it("is just the task and the clarify line", () => {
     expect(renderMinimal("Fix my login screen")).toBe(
-      ["Task: Fix my login screen", CLARIFY_LINE].join("\n"),
+      ["Fix my login screen", CLARIFY_LINE].join("\n"),
     );
   });
   it("still lists attachments", () => {
     expect(renderMinimal("Summarise", [{ name: "n.txt", type: "txt" }])).toContain(
       "- [Attached: n.txt (txt)]",
     );
+  });
+});
+
+describe("withoutRepeats", () => {
+  const task = "Explain why the Kubernetes pod keeps restarting and how to fix it.";
+
+  it("drops items whose every detail is already in the task", () => {
+    expect(withoutRepeats(task, ["The pod keeps restarting", "Kubernetes pod restarts"])).toEqual(
+      [],
+    );
+  });
+
+  it("keeps an item with even one new detail", () => {
+    expect(
+      withoutRepeats(task, ["The pod restarts every few minutes", "The memory limit is 256 Mi"]),
+    ).toEqual(["The pod restarts every few minutes", "The memory limit is 256 Mi"]);
+  });
+
+  it("keeps a new number even when the words match", () => {
+    expect(withoutRepeats("Write 3 bullet points", ["5 bullet points"])).toEqual([
+      "5 bullet points",
+    ]);
+  });
+
+  it("keeps negations the task does not have", () => {
+    expect(withoutRepeats("Explain lists and tuples in Python", ["Do not use jargon"])).toEqual([
+      "Do not use jargon",
+    ]);
+  });
+
+  it("drops an item another, longer item already contains", () => {
+    expect(
+      withoutRepeats("Write a script", ["Runs every night", "It runs every night at 2 am"]),
+    ).toEqual(["It runs every night at 2 am"]);
+  });
+
+  it("keeps only the first of two equal items", () => {
+    expect(withoutRepeats("Write a script", ["Uses Bash", "uses bash"])).toEqual(["Uses Bash"]);
+  });
+
+  it("drops an 'Assumed:' item the task already states", () => {
+    expect(withoutRepeats("Explain derivatives to a beginner", ["Assumed: beginner"])).toEqual([]);
   });
 });
