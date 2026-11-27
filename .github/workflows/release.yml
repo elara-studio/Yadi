@@ -62,6 +62,8 @@ jobs:
           releaseBody: |
             Early preview. Speech and the language model run on your own computer.
 
+            **What's new:** see [CHANGELOG.md](https://github.com/elara-studio/Yadi/blob/${{ github.ref_name }}/CHANGELOG.md).
+
             **Download**
             - macOS (Apple Silicon): `Yadi_*_aarch64.dmg`
             - Windows (x64): `Yadi_*_x64-setup.exe`

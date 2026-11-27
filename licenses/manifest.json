@@ -3,7 +3,7 @@
     "id": "yadi",
     "name": "Yadi",
     "kind": "app",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license_spdx": "Apache-2.0",
     "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
     "attribution": "Copyright Elara Software Services FZ-LLC. Placeholder licence (decision D1) until confirmed.",
