@@ -158,3 +158,28 @@ One block per run, newest last. Scores are the mean share of the 7 checks passed
 - Latency: p50 9546 ms, p95 11717 ms
 - Degraded prompts: 0 · judge failures: 0
 - Failures: and-01 [concise]; and-03 [concise]; and-04 [concise, clarify]; web-01 [clarify]; web-02 [clarify]; web-03 [clarify]; data-01 [faithful, concise, clarify]; data-03 [concise, clarify]; wr-01 [concise]; wr-02 [clarify]; wr-03 [clarify]; wr-04 [concise]; gen-01 [clarify]; gen-02 [concise, clarify]; gen-03 [concise]; gen-04 [concise]; gen-05 [concise]; math-01 [faithful]; math-02 [clarify]; corr-02 [clarify]; ramble-01 [clarify]; ramble-02 [no_invention, clarify]; vague-01 [clarify]; vague-02 [concise, clarify]; att-01 [concise]; att-02 [concise, clarify]; tech-01 [concise, clarify]; tech-03 [concise]; ml-01 [concise, clarify]; fmt-02 [concise]; sens-01 [no_invention, clarify]; multi-01 [clarify]; lang-01 [concise, clarify]; corr-05 [concise, clarify]
+
+## 2026-11-27 · qwen3:4b-instruct-2507-q4_K_M
+> Baseline for the round-5 work: the 0.1.1 prompts on 47 cases (44 + real-01..03, three real sessions that came out wordy), judge qwen3:8b.
+
+- Judge: `qwen3:8b`
+- Cases: 47
+- **Mean score: 0.875** · hold-out 0.779 · tuning set 0.905
+- Per check: faithful 0.957, no_invention 0.872, retractions 1.000, template 1.000, concise 0.681, clarify 0.617, assumptions 1.000
+- Per category: already-good 0.857 (1), asr-errors 0.964 (4), attachment 0.714 (2), coding-android 0.905 (3), coding-backend 0.857 (1), coding-web 0.786 (2), constraints 0.857 (1), data 0.810 (3), data-ml 0.714 (1), filler-heavy 0.929 (2), format-request 1.000 (2), general 0.914 (5), long-ramble 0.857 (2), math 0.786 (2), multi-task 0.857 (1), real-session 0.952 (3), self-correction 0.914 (5), sensitive 0.714 (1), vague 0.857 (2), writing 0.857 (2), writing-email 0.857 (2)
+- Mean token ratio (out/in): 1.728 (approximate tokens)
+- Latency: p50 12299 ms, p95 19180 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-04 [concise, clarify]; web-02 [no_invention, concise, clarify]; web-03 [clarify]; data-01 [faithful, no_invention, clarify]; data-03 [clarify]; wr-01 [concise]; wr-02 [clarify]; wr-03 [clarify]; wr-04 [concise]; gen-01 [clarify]; gen-02 [clarify]; gen-05 [concise]; math-01 [faithful, no_invention]; math-02 [clarify]; corr-02 [clarify]; filler-02 [concise]; ramble-01 [concise]; ramble-02 [concise]; vague-01 [concise]; vague-02 [concise]; att-01 [concise, clarify]; att-02 [concise, clarify]; tech-01 [clarify]; ml-01 [concise, clarify]; good-01 [concise]; sens-01 [concise, clarify]; multi-01 [clarify]; lang-01 [clarify]; corr-04 [no_invention]; corr-05 [no_invention]; real-03 [no_invention]
+## 2026-11-27 · qwen3:4b-instruct-2507-q4_K_M
+> Round 5 (shipped on improve/shorter-prompts): short quote-first notes, the model labels repeats_task / turned_down and code removes them, render guards for repeats. Same 47 cases and judge as the baseline block above.
+
+- Judge: `qwen3:8b`
+- Cases: 47
+- **Mean score: 0.869** · hold-out 0.805 · tuning set 0.889
+- Per check: faithful 0.979, no_invention 0.894, retractions 1.000, template 1.000, concise 0.574, clarify 0.638, assumptions 1.000
+- Per category: already-good 0.714 (1), asr-errors 0.929 (4), attachment 0.786 (2), coding-android 0.905 (3), coding-backend 0.714 (1), coding-web 0.786 (2), constraints 0.857 (1), data 0.857 (3), data-ml 0.714 (1), filler-heavy 1.000 (2), format-request 1.000 (2), general 0.886 (5), long-ramble 0.857 (2), math 0.786 (2), multi-task 0.857 (1), real-session 0.952 (3), self-correction 0.886 (5), sensitive 0.714 (1), vague 0.857 (2), writing 0.857 (2), writing-email 0.857 (2)
+- Mean token ratio (out/in): 1.740 (approximate tokens)
+- Latency: p50 14891 ms, p95 19807 ms
+- Degraded prompts: 0 · judge failures: 0
+- Failures: and-04 [concise, clarify]; web-02 [no_invention, concise, clarify]; web-03 [concise, clarify]; data-01 [concise, clarify]; data-03 [concise]; wr-01 [concise]; wr-02 [clarify]; wr-03 [clarify]; wr-04 [concise]; gen-01 [concise, clarify]; gen-02 [clarify]; gen-05 [concise]; math-01 [faithful]; math-02 [concise, clarify]; corr-02 [clarify]; ramble-01 [concise]; ramble-02 [concise]; vague-01 [concise]; vague-02 [concise]; att-01 [concise, clarify]; att-02 [concise]; tech-01 [clarify]; tech-02 [concise]; ml-01 [concise, clarify]; good-01 [concise, clarify]; sens-01 [no_invention, clarify]; multi-01 [clarify]; lang-01 [clarify]; corr-04 [no_invention]; corr-05 [no_invention, concise]; real-03 [no_invention]

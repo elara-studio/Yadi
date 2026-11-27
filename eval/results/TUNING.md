@@ -41,3 +41,35 @@ Three rounds were used (the maximum). No scorer was changed.
 
 - `pnpm --filter @yadi/eval run check:fewshot`: no few-shot example equals, contains or is contained in an eval transcript (8 examples, 42 cases).
 - All pipeline tests still pass (`@yadi/core` 248).
+
+## Shorter prompts (after 0.1.1, qwen3:4b-instruct, 47 cases, judge qwen3:8b)
+
+Three real sessions came out wordy (sentences copied into Context, the task repeated as
+constraints, a turned-down city kept). They were added as `real-01`..`real-03` and five rounds were
+compared against the 0.1.1 prompts on all 47 cases:
+
+| Round | Mean | Tokens out (47 cases) | concise | real-01 / 02 / 03 tokens | Change |
+|---|---|---|---|---|---|
+| 0.1.1 baseline | 0.875 | 2,045 | 0.68 | 14 / 92 / 180 | |
+| 2 | 0.848 | 2,476 | 0.43 | 88 / 87 / 122 | short notes, `evidence` before `text`, context vs constraints defined |
+| 3 | 0.851 | 2,595 | 0.43 | 59 / 108 / 153 | + "no notes about the user or the request" |
+| 4 | 0.851 | 2,145 | 0.55 | 27 / 86 / 139 | "say each thing once", few-shots made consistent, near-repeat guard |
+| **5** | 0.869 | **2,021** | 0.57 | **11 / 71 / 125** | the model labels `repeats_task` / `turned_down`, code removes them |
+
+What we learned:
+
+- **Labelling beats omitting.** Rules that ask the 4B model to leave something out ("drop options
+  the person turned down") were ignored in every round. Asking it to label each item and removing
+  labelled items in code worked: real-01 became the plain sentence, and the total went below the
+  baseline for the first time. A `repeats_task` label is ignored when the item has a number the
+  task lacks, so a wrong label cannot cost a budget or a date.
+- **Writing the quote first** (`evidence` before `text` in the schema) stopped the model copying
+  whole sentences into the note.
+- **Stage 1 (cleanup) is fragile; leave it alone.** Every attempt to make it cut more (drop
+  openers, keep only the chosen option, "remove whatever does not change the meaning") made it
+  rewrite numbers (400 euros became "40.00" or "40-500") or delete real requirements ("in
+  English", "a Slack message"). Safer cuts belong in Stage 0 (code) or behind a number check.
+- The mean score is within run-to-run noise of the baseline (0.869 vs 0.875). The new
+  `no_invention` failures were read by hand and invent nothing; the judge varies between runs.
+- Open: the Analyze prompt grew from about 2,360 to about 2,960 tokens against `num_ctx` 4096, so
+  a very long ramble plus an attachment has less room than before.

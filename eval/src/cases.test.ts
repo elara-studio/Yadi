@@ -8,8 +8,8 @@ const file = join(dirname(fileURLToPath(import.meta.url)), "../cases.jsonl");
 describe("cases", () => {
   it("loads the real eval set", () => {
     const cases = loadCases(file);
-    expect(cases).toHaveLength(44);
-    expect(new Set(cases.map((c) => c.id)).size).toBe(44);
+    expect(cases).toHaveLength(47);
+    expect(new Set(cases.map((c) => c.id)).size).toBe(47);
     expect(cases.every((c) => c.transcript.length > 0 && c.must_include.length > 0)).toBe(true);
   });
 
@@ -36,8 +36,8 @@ describe("cases", () => {
   it("selectCases keeps file order, and rejects unknown ids", () => {
     const cases = loadCases(file);
     expect(selectCases(cases, ["gen-02", "and-01"]).map((c) => c.id)).toEqual(["and-01", "gen-02"]);
-    expect(selectCases(cases, undefined)).toHaveLength(44);
-    expect(selectCases(cases, [])).toHaveLength(44);
+    expect(selectCases(cases, undefined)).toHaveLength(47);
+    expect(selectCases(cases, [])).toHaveLength(47);
     expect(() => selectCases(cases, ["nope"])).toThrow("unknown case id");
   });
 
